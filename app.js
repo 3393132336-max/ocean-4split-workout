@@ -194,7 +194,8 @@ function recordSet(reps) {
   if (isSupersetB && !isLastSet) { s.exerciseIndex -= 1; s.setIndex += 1; beginRest(ex.rest || settings().rest); return; }
   if (isLastSet && !nextEx) { releaseWakeLock(); vibrate([200, 100, 200]); go("complete"); return; }
   if (isLastSet) { s.exerciseIndex += 1; s.setIndex = 0; } else { s.setIndex += 1; }
-  if (ex.part === "热身" || ex.part === "拉伸") { render(); return; }
+  const upcoming = s.exercises[s.exerciseIndex];
+  if (ex.part === "热身" || ex.part === "拉伸" || (upcoming && upcoming.part === "拉伸")) { render(); return; }
   beginRest(ex.rest || settings().rest);
 }
 function beginRest(seconds) {
