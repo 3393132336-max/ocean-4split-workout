@@ -104,8 +104,8 @@ function go(view, data = {}) {
   transition.classList.remove("play");
   void transition.offsetWidth;
   transition.classList.add("play");
-  setTimeout(() => { state.view = view; Object.assign(state, data); render(); }, 300);
-  setTimeout(() => transition.classList.remove("play"), 820);
+  setTimeout(() => { state.view = view; Object.assign(state, data); render(); }, 420);
+  setTimeout(() => transition.classList.remove("play"), 950);
 }
 function setDepth(depth, bg = "") { app.dataset.depth = depth; if (bg) app.dataset.bg = bg; else delete app.dataset.bg; }
 function nav(active) { return `<nav class="bottom-nav" aria-label="主导航"><button class="nav-btn ${active === "home" ? "active" : ""}" data-action="home">${ICONS.home}<span>训练</span></button><button class="nav-btn ${active === "history" ? "active" : ""}" data-action="history">${ICONS.history}<span>日志</span></button><button class="nav-btn ${active === "settings" ? "active" : ""}" data-action="settings">${ICONS.settings}<span>设置</span></button></nav>`; }
