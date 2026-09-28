@@ -25,7 +25,7 @@ const PLAN = {
     { id: "s2_01", name: "背阔肌拉伸", part: "拉伸", sets: 1, repsLabel: "20-30秒/侧", inputMode: "numpad", cue: "单手支撑，脸贴住支撑手的胳膊，身体向对侧旋转" },
     { id: "s2_02", name: "肱二头肌拉伸", part: "拉伸", sets: 1, repsLabel: "20秒/侧", inputMode: "numpad", cue: "手臂贴住支撑物，身体向对侧旋转，重心可稍往下沉" }
   ] },
-  day3: { id: "day3", label: "Day 3", title: "大腿和小腿", short: "腿", depth: "shallows", exercises: [
+  day3: { id: "day3", label: "Day 4", title: "大腿和小腿", short: "腿", depth: "shallows", exercises: [
     { id: "d3_01", name: "伟大的伸展", part: "热身", sets: 3, repsLabel: "15次", inputMode: "auto", cue: "弓步双手撑地，胸椎旋转打开，左右交替" },
     { id: "d3_02", name: "臀部行走", part: "热身", sets: 1, repsLabel: "来回5次", inputMode: "auto", cue: "坐姿双腿前伸，用臀部交替向前行走" },
     { id: "d3_03", name: "哥本哈根支撑", part: "大腿", sets: 3, repsLabel: "30秒/侧", inputMode: "numpad", cue: "侧撑，上侧腿搭凳面，髋部抬起保持" },
@@ -38,7 +38,7 @@ const PLAN = {
     { id: "s3_02", name: "坐姿体前屈", part: "拉伸", sets: 1, repsLabel: "30秒", inputMode: "numpad", cue: "坐姿双腿伸直，双手抓住脚踝，背部挺直不要硬压" },
     { id: "s3_03", name: "鸽子式臀部拉伸", part: "拉伸", sets: 1, repsLabel: "30秒/侧", inputMode: "numpad", cue: "前后脚成90度，身体往前推，背部挺直" }
   ] },
-  day4: { id: "day4", label: "Day 4", title: "肩部和手臂", short: "肩 + 手臂", depth: "shallows", exercises: [
+  day4: { id: "day4", label: "Day 3", title: "肩部和手臂", short: "肩 + 手臂", depth: "shallows", exercises: [
     { id: "d4_01", name: "弹力带肩部环绕", part: "热身", sets: 2, repsLabel: "20次", inputMode: "auto", cue: "双手握弹力带从体前绕到体后，肩关节全程放松" },
     { id: "d4_02", name: "仰卧Y字动态训练", part: "热身", sets: 2, repsLabel: "20次", inputMode: "auto", cue: "仰卧双臂举过头顶成Y字再收回体侧" },
     { id: "d4_03", name: "哑铃俯身飞鸟", part: "肩部", sets: 4, repsLabel: "12-15次", inputMode: "auto", cue: "俯身双臂微屈向两侧飞起，肩后束发力" },
@@ -129,7 +129,7 @@ function render() {
 }
 function renderHome() {
   setDepth("surface", "surface");
-  const days = Object.values(PLAN).filter(day => day.id !== "day5");
+  const days = [PLAN.day1, PLAN.day2, PLAN.day4, PLAN.day3];
   app.innerHTML = `<main class="page">${pageHeader("海面四分化", "HOME TRAINING")}<section class="hero-card surface-card"><div class="hero-copy"><span class="eyebrow">今日训练</span><h2>把每一次下潜<br>练成更好的自己</h2><p class="subtle">四日循环训练。跟随节奏，记录每一组进步。</p></div></section><div class="section-heading"><h2>训练日</h2><span class="subtle">四分化计划</span></div><section class="day-grid">${days.map((day, index) => { const total = dayData(day.id).exercises.reduce((sum, ex) => sum + ex.sets, 0); return `<button class="day-card surface-card" data-action="day" data-day="${day.id}"><div><span class="day-index">DAY ${index + 1}</span><h3>${day.title}</h3></div><div class="day-meta"><span>${day.short} · ${day.exercises.length} 动作 · ${total} 组</span></div></button>`; }).join("")}<button class="rest-card surface-card" data-action="restday"><span class="sun-mark"></span><span style="flex:1"><strong>Day 5 · 休息日</strong><span class="subtle" style="display:block;margin-top:4px">恢复也是训练的一部分</span></span><span>${ICONS.back}</span></button></section>${nav("home")}</main>`;
 }
 function groupOf(ex) { return ex.part === "热身" ? "热身" : ex.part.includes("超级组") ? "超级组" : ex.part.includes("腹肌") ? "腹肌" : ex.part === "拉伸" ? "拉伸" : "主项"; }
@@ -137,7 +137,7 @@ function renderDay() {
   const day = dayData(state.dayId); setDepth("shallows", "surface");
   const groups = [...new Set(day.exercises.map(groupOf))];
   app.innerHTML = `<main class="page"><header class="page-header"><button class="back-btn" data-action="home">${ICONS.back}</button><div style="flex:1"><span class="eyebrow">${day.label}</span><h1>${day.title}</h1></div><button class="icon-btn" data-action="settings">${ICONS.settings}</button></header><section class="day-summary surface-card"><div><strong>${day.exercises.length} 个动作</strong><p class="summary-count">${day.exercises.reduce((sum, ex) => sum + ex.sets, 0)} 组训练容量</p></div><span class="day-index">今日计划</span></section>${groups.map(group => `<section><div class="group-label">${group}</div><div class="exercise-list">${day.exercises.filter(ex => groupOf(ex) === group).map(exerciseRow).join("")}</div></section>`).join("")}<div class="start-wrap"><button class="primary-btn btn-wide btn-large" data-action="start" data-day="${day.id}">${ICONS.play} 开始训练</button></div>${nav("home")}</main>`;
-  day.exercises.forEach(ex => prefetchClip(ex.id));
+  day.exercises.slice(0, 2).forEach(ex => prefetchClip(ex.id));
 }
 function exerciseRow(ex) {
   const open = state.openEdit === ex.id;
@@ -146,7 +146,7 @@ function exerciseRow(ex) {
 function renderPlayer() {
   const s = state.session; const ex = s.exercises[s.exerciseIndex]; const totalSets = s.exercises.reduce((sum, e) => sum + e.sets, 0); const progress = (s.completedSets / totalSets) * 100;
   setDepth("mid", "underwater");
-  app.innerHTML = `<main class="page player-page"><header class="player-header"><button class="back-btn" data-action="quit">${ICONS.close}</button><div class="player-title"><span class="eyebrow">${s.day.title}</span><h1>${escapeHtml(ex.name)}</h1><p class="subtle">${escapeHtml(ex.part)} · 第 ${s.setIndex + 1} 组 / 共 ${ex.sets} 组</p></div><button class="icon-btn" data-action="toggle-mute" aria-label="${state.muted ? "打开声音" : "静音"}">${state.muted ? ICONS.mute : ICONS.volume}</button></header><div class="progress-track"><span style="width:${Math.min(100, progress)}%"></span></div><section class="player-stage"><div class="video-loading" id="video-loading">视频加载中</div><video id="exercise-video" autoplay muted loop playsinline src="videos/clips/${ex.id}.mp4"></video><div class="cue-card"><span class="cue-label">动作要领</span><p>${escapeHtml(ex.cue)}</p></div></section><div class="player-bottom"><button class="primary-btn btn-wide btn-large" data-action="complete-set">完成本组</button><p class="subtle" style="text-align:center;margin-top:10px">目标：${escapeHtml(ex.repsLabel)}</p></div></main>`;
+  app.innerHTML = `<main class="page player-page"><header class="player-header"><button class="back-btn" data-action="quit">${ICONS.close}</button><div class="player-title"><span class="eyebrow">${s.day.title}</span><h1>${escapeHtml(ex.name)}</h1><p class="subtle">${escapeHtml(ex.part)} · 第 ${s.setIndex + 1} 组 / 共 ${ex.sets} 组</p></div><button class="icon-btn" data-action="toggle-mute" aria-label="${state.muted ? "打开声音" : "静音"}">${state.muted ? ICONS.mute : ICONS.volume}</button></header><div class="progress-track"><span style="width:${Math.min(100, progress)}%"></span></div><section class="player-stage"><div class="video-loading" id="video-loading">视频加载中</div><video id="exercise-video" autoplay muted loop playsinline src="videos/clips/${ex.id}.mp4"></video><div class="cue-card collapsed" data-action="toggle-cue"><span class="cue-label">动作要领</span><p class="cue-text">${escapeHtml(ex.cue)}</p></div></section><div class="player-bottom"><button class="primary-btn btn-wide btn-large" data-action="complete-set">完成本组</button><p class="subtle" style="text-align:center;margin-top:10px">目标：${escapeHtml(ex.repsLabel)}</p></div></main>`;
   const video = document.querySelector("#exercise-video");
   if (video) {
     video.addEventListener("error", () => { video.remove(); const loader = document.querySelector("#video-loading"); if (loader) loader.remove(); const stage = document.querySelector(".player-stage"); if (stage && !stage.querySelector(".no-video-note")) { const note = document.createElement("small"); note.className = "no-video-note"; note.textContent = "该动作教学视频待补充，照着要领完成即可"; const cue = stage.querySelector(".cue-card p"); if (cue) cue.after(note); } });
@@ -229,6 +229,7 @@ document.addEventListener("click", event => {
   if (action === "complete-set") completeSet();
   if (action === "skip-rest") { clearInterval(state.restTimer); document.querySelector("#rest-modal")?.remove(); render(); }
   if (action === "add-rest") { state.restLeft += 15; const number = document.querySelector("#rest-number"); if (number) number.textContent = state.restLeft; }
+  if (action === "toggle-cue") { const card = document.querySelector(".cue-card"); if (card) card.classList.toggle("collapsed"); }
   if (action === "toggle-mute") { state.muted = !state.muted; const video = document.querySelector("#exercise-video"); if (video) { video.muted = state.muted; if (!state.muted) video.play().catch(() => {}); } const btn = actionEl; btn.innerHTML = state.muted ? ICONS.mute : ICONS.volume; btn.setAttribute("aria-label", state.muted ? "打开声音" : "静音"); }
   if (action === "quit") { clearInterval(state.restTimer); document.querySelector("#rest-modal")?.remove(); releaseWakeLock(); state.session = null; go("home"); }
   if (action === "save-session") saveSession();

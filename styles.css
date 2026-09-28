@@ -103,7 +103,9 @@ h3 { font-size: 18px; line-height: 1.25; }
 .player-stage { min-height: 52dvh; border-radius: 22px; padding: 18px; display: flex; align-items: end; position: relative; overflow: hidden; background: rgba(7,54,74,.34); border: 1px solid rgba(250,253,254,.2); }
 .player-stage video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .player-stage::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 40%, rgba(7,54,74,.78)); pointer-events: none; }
-.cue-card { position: relative; z-index: 1; width: 100%; padding: 17px; border-radius: 16px; background: rgba(7,54,74,.6); backdrop-filter: blur(8px); }
+.cue-card { position: relative; z-index: 1; width: 100%; padding: 17px; border-radius: 16px; background: rgba(7,54,74,.6); backdrop-filter: blur(8px); cursor: pointer; }
+.cue-card.collapsed { width: auto; padding: 0; background: transparent; border: none; backdrop-filter: none; box-shadow: none; }
+.cue-card.collapsed .cue-text { display: none; }
 .cue-card .cue-label { display: inline-flex; min-height: 26px; align-items: center; padding: 0 10px; border-radius: 999px; color: var(--ink); background: var(--warm); font-size: 11px; font-weight: 900; }
 .cue-card p { margin-top: 9px; font-size: 15px; line-height: 1.55; }
 .player-bottom { margin-top: 16px; }
