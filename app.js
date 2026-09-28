@@ -9,7 +9,9 @@ const PLAN = {
     { id: "d1_06", name: "双杠臂屈伸", part: "胸部", sets: 4, repsLabel: "10-12次", inputMode: "auto", cue: "可用两把椅子代替，身体略前倾，屈肘下放再撑起" },
     { id: "d1_07", name: "哑铃飞鸟", part: "胸部", sets: 4, repsLabel: "12-15次", inputMode: "auto", cue: "仰卧双臂微屈向两侧打开，像环抱大树，胸肌收紧合拢" },
     { id: "d1_08", name: "颈后哑铃臂屈伸", part: "三头肌", sets: 4, repsLabel: "10-12次/侧", inputMode: "auto", cue: "持哑铃置于颈后，伸直手臂举过头顶，大臂固定" },
-    { id: "d1_09", name: "俯身哑铃臂屈伸", part: "三头肌", sets: 3, repsLabel: "12次/侧", inputMode: "auto", cue: "俯身大臂夹紧身体固定不动，小臂向后伸直" }
+    { id: "d1_09", name: "俯身哑铃臂屈伸", part: "三头肌", sets: 3, repsLabel: "12次/侧", inputMode: "auto", cue: "俯身大臂夹紧身体固定不动，小臂向后伸直" },
+    { id: "s1_01", name: "胸部支撑拉伸", part: "拉伸", sets: 1, repsLabel: "20-30秒/侧", inputMode: "numpad", cue: "找到一个支撑物（墙或沙发），外侧腿在后，背部挺直向前压" },
+    { id: "s1_02", name: "肱三头肌拉伸", part: "拉伸", sets: 1, repsLabel: "20-30秒/侧", inputMode: "numpad", cue: "屈肘大臂靠近耳朵，另一只手往后压肘部，保持呼吸" }
   ] },
   day2: { id: "day2", label: "Day 2", title: "背肌和二头肌", short: "背 + 二头", depth: "shallows", exercises: [
     { id: "d2_01", name: "静态肘支撑肩胛骨控制", part: "热身", sets: 3, repsLabel: "10次呼吸", inputMode: "auto", cue: "肘撑平板姿势，肩胛骨做前引与回收，配合呼吸" },
@@ -19,7 +21,9 @@ const PLAN = {
     { id: "d2_05", name: "引体向上", part: "背肌", sets: 4, repsLabel: "10-12次", inputMode: "numpad", cue: "正握略宽于肩，背阔肌发力拉起下巴过杠，可弹力带辅助" },
     { id: "d2_06", name: "双手哑铃划船", part: "背肌", sets: 4, repsLabel: "10-12次", inputMode: "auto", cue: "俯身双膝微屈，双哑铃同时沿大腿向后上方划起" },
     { id: "d2_07", name: "单手哑铃交替弯举", part: "二头肌", sets: 3, repsLabel: "10次/侧", inputMode: "auto", cue: "站姿双臂交替弯举，顶峰收缩一秒" },
-    { id: "d2_08", name: "垂式哑铃弯举", part: "二头肌", sets: 3, repsLabel: "10-12次/侧", inputMode: "auto", cue: "双手对握哑铃垂于体侧，掌心相对弯举" }
+    { id: "d2_08", name: "垂式哑铃弯举", part: "二头肌", sets: 3, repsLabel: "10-12次/侧", inputMode: "auto", cue: "双手对握哑铃垂于体侧，掌心相对弯举" },
+    { id: "s2_01", name: "背阔肌拉伸", part: "拉伸", sets: 1, repsLabel: "20-30秒/侧", inputMode: "numpad", cue: "单手支撑，脸贴住支撑手的胳膊，身体向对侧旋转" },
+    { id: "s2_02", name: "肱二头肌拉伸", part: "拉伸", sets: 1, repsLabel: "20秒/侧", inputMode: "numpad", cue: "手臂贴住支撑物，身体向对侧旋转，重心可稍往下沉" }
   ] },
   day3: { id: "day3", label: "Day 3", title: "大腿和小腿", short: "腿", depth: "shallows", exercises: [
     { id: "d3_01", name: "伟大的伸展", part: "热身", sets: 3, repsLabel: "15次", inputMode: "auto", cue: "弓步双手撑地，胸椎旋转打开，左右交替" },
@@ -29,7 +33,10 @@ const PLAN = {
     { id: "d3_05", name: "反向保加利亚蹲", part: "大腿", sets: 4, repsLabel: "8-10次/侧", inputMode: "auto", cue: "后脚搭凳，前腿下蹲至大腿接近平行地面" },
     { id: "d3_06", name: "颈前深蹲", part: "大腿", sets: 4, repsLabel: "12-15次", inputMode: "auto", cue: "哑铃托于胸前，下蹲时膝盖对齐脚尖方向" },
     { id: "d3_07", name: "哑铃直腿硬拉", part: "大腿", sets: 4, repsLabel: "10-12次", inputMode: "auto", cue: "双膝微屈髋部后移，哑铃沿小腿下放，臀腿后侧发力起身" },
-    { id: "d3_08", name: "站姿提踵", part: "小腿", sets: 3, repsLabel: "15-18次", inputMode: "auto", cue: "站姿提踵至最高顶峰停顿，缓慢下放，可持哑铃" }
+    { id: "d3_08", name: "站姿提踵", part: "小腿", sets: 3, repsLabel: "15-18次", inputMode: "auto", cue: "站姿提踵至最高顶峰停顿，缓慢下放，可持哑铃" },
+    { id: "s3_01", name: "跪姿股四头肌拉伸", part: "拉伸", sets: 1, repsLabel: "20-30秒/侧", inputMode: "numpad", cue: "跪姿抓住脚踝，重心往前，感受大腿前侧被拉开" },
+    { id: "s3_02", name: "坐姿体前屈", part: "拉伸", sets: 1, repsLabel: "30秒", inputMode: "numpad", cue: "坐姿双腿伸直，双手抓住脚踝，背部挺直不要硬压" },
+    { id: "s3_03", name: "鸽子式臀部拉伸", part: "拉伸", sets: 1, repsLabel: "30秒/侧", inputMode: "numpad", cue: "前后脚成90度，身体往前推，背部挺直" }
   ] },
   day4: { id: "day4", label: "Day 4", title: "肩部和手臂", short: "肩 + 手臂", depth: "shallows", exercises: [
     { id: "d4_01", name: "弹力带肩部环绕", part: "热身", sets: 2, repsLabel: "20次", inputMode: "auto", cue: "双手握弹力带从体前绕到体后，肩关节全程放松" },
@@ -42,7 +49,8 @@ const PLAN = {
     { id: "d4_08", name: "哑铃颈后臂屈伸", part: "手臂超级组", sets: 4, repsLabel: "12次", inputMode: "auto", cue: "超级组B：完成后才进入组间歇" },
     { id: "d4_09", name: "卷腹", part: "腹肌", sets: 3, repsLabel: "15次", inputMode: "auto", cue: "仰卧屈膝，上背抬起即可，颈部放松不要借力", isAbs: true },
     { id: "d4_10", name: "单腿提膝（登山者）", part: "腹肌", sets: 3, repsLabel: "20次", inputMode: "auto", cue: "平板支撑姿势，单腿提膝跳起来换腿，核心全程收紧", isAbs: true },
-    { id: "d4_11", name: "平板/侧向平板支撑", part: "腹肌", sets: 3, repsLabel: "30秒", inputMode: "numpad", cue: "肘撑平板或侧向平板，抬头收下巴；做不了可以减量", isAbs: true }
+    { id: "d4_11", name: "平板/侧向平板支撑", part: "腹肌", sets: 3, repsLabel: "30秒", inputMode: "numpad", cue: "肘撑平板或侧向平板，抬头收下巴；做不了可以减量", isAbs: true },
+    { id: "s4_01", name: "肩部交叉拉伸", part: "拉伸", sets: 1, repsLabel: "20-30秒/侧", inputMode: "numpad", cue: "右手摁住左手肘关节向对侧压，保持20-30秒换边" }
   ] },
   day5: { id: "day5", label: "Day 5", title: "休息日", short: "恢复", depth: "surface", exercises: [] }
 };
@@ -124,24 +132,28 @@ function renderHome() {
   const days = Object.values(PLAN).filter(day => day.id !== "day5");
   app.innerHTML = `<main class="page">${pageHeader("海面四分化", "HOME TRAINING")}<section class="hero-card surface-card"><div class="hero-copy"><span class="eyebrow">今日训练</span><h2>把每一次下潜<br>练成更好的自己</h2><p class="subtle">四日循环训练。跟随节奏，记录每一组进步。</p></div></section><div class="section-heading"><h2>训练日</h2><span class="subtle">四分化计划</span></div><section class="day-grid">${days.map((day, index) => { const total = dayData(day.id).exercises.reduce((sum, ex) => sum + ex.sets, 0); return `<button class="day-card surface-card" data-action="day" data-day="${day.id}"><div><span class="day-index">DAY ${index + 1}</span><h3>${day.title}</h3></div><div class="day-meta"><span>${day.short} · ${day.exercises.length} 动作 · ${total} 组</span></div></button>`; }).join("")}<button class="rest-card surface-card" data-action="restday"><span class="sun-mark"></span><span style="flex:1"><strong>Day 5 · 休息日</strong><span class="subtle" style="display:block;margin-top:4px">恢复也是训练的一部分</span></span><span>${ICONS.back}</span></button></section>${nav("home")}</main>`;
 }
+function groupOf(ex) { return ex.part === "热身" ? "热身" : ex.part.includes("超级组") ? "超级组" : ex.part.includes("腹肌") ? "腹肌" : ex.part === "拉伸" ? "拉伸" : "主项"; }
 function renderDay() {
   const day = dayData(state.dayId); setDepth("shallows", "surface");
-  const groups = [...new Set(day.exercises.map(ex => ex.part === "热身" ? "热身" : ex.part.includes("超级组") ? "超级组" : ex.part.includes("腹肌") ? "腹肌" : "主项"))];
-  app.innerHTML = `<main class="page"><header class="page-header"><button class="back-btn" data-action="home">${ICONS.back}</button><div style="flex:1"><span class="eyebrow">${day.label}</span><h1>${day.title}</h1></div><button class="icon-btn" data-action="settings">${ICONS.settings}</button></header><section class="day-summary surface-card"><div><strong>${day.exercises.length} 个动作</strong><p class="summary-count">${day.exercises.reduce((sum, ex) => sum + ex.sets, 0)} 组训练容量</p></div><span class="day-index">今日计划</span></section>${groups.map(group => `<section><div class="group-label">${group}</div><div class="exercise-list">${day.exercises.filter(ex => (group === "热身" ? ex.part === "热身" : group === "超级组" ? ex.part.includes("超级组") : group === "腹肌" ? ex.part.includes("腹肌") : ex.part !== "热身" && !ex.part.includes("超级组") && !ex.part.includes("腹肌"))).map(exerciseRow).join("")}</div></section>`).join("")}<div class="start-wrap"><button class="primary-btn btn-wide btn-large" data-action="start" data-day="${day.id}">${ICONS.play} 开始训练</button></div>${nav("home")}</main>`;
+  const groups = [...new Set(day.exercises.map(groupOf))];
+  app.innerHTML = `<main class="page"><header class="page-header"><button class="back-btn" data-action="home">${ICONS.back}</button><div style="flex:1"><span class="eyebrow">${day.label}</span><h1>${day.title}</h1></div><button class="icon-btn" data-action="settings">${ICONS.settings}</button></header><section class="day-summary surface-card"><div><strong>${day.exercises.length} 个动作</strong><p class="summary-count">${day.exercises.reduce((sum, ex) => sum + ex.sets, 0)} 组训练容量</p></div><span class="day-index">今日计划</span></section>${groups.map(group => `<section><div class="group-label">${group}</div><div class="exercise-list">${day.exercises.filter(ex => groupOf(ex) === group).map(exerciseRow).join("")}</div></section>`).join("")}<div class="start-wrap"><button class="primary-btn btn-wide btn-large" data-action="start" data-day="${day.id}">${ICONS.play} 开始训练</button></div>${nav("home")}</main>`;
+  day.exercises.forEach(ex => prefetchClip(ex.id));
 }
 function exerciseRow(ex) {
   const open = state.openEdit === ex.id;
-  return `<div><button class="exercise-row surface-card" data-action="edit" data-ex="${ex.id}"><span><strong>${escapeHtml(ex.name)}</strong><span class="exercise-meta">${escapeHtml(ex.part)} · ${escapeHtml(ex.repsLabel)}</span></span><span class="exercise-rest"><strong>${ex.sets} 组</strong>${ex.rest} 秒休息</span></button><div class="edit-panel surface-card ${open ? "open" : ""}" id="edit-${ex.id}"><div class="field-grid"><div class="field"><label for="sets-${ex.id}">组数</label><input id="sets-${ex.id}" data-edit-field="sets" data-ex="${ex.id}" type="number" min="1" max="10" value="${ex.sets}"></div><div class="field"><label for="rest-${ex.id}">间歇秒数</label><input id="rest-${ex.id}" data-edit-field="rest" data-ex="${ex.id}" type="number" min="0" max="600" value="${ex.rest}"></div><div class="field field-wide"><label for="reps-${ex.id}">次数目标</label><input id="reps-${ex.id}" data-edit-field="repsLabel" data-ex="${ex.id}" type="text" value="${escapeHtml(ex.repsLabel)}"></div></div><div class="edit-actions"><button class="ghost-btn btn-small" data-action="reset-ex" data-ex="${ex.id}">恢复默认</button><span class="subtle">改动自动保存</span></div></div></div>`;
+  return `<div><button class="exercise-row surface-card" data-action="edit" data-ex="${ex.id}"><span><strong>${escapeHtml(ex.name)}</strong><span class="exercise-meta">${escapeHtml(ex.part)} · ${escapeHtml(ex.repsLabel)}</span></span><span class="exercise-rest"><strong>${ex.sets} 组</strong>${ex.part === "热身" || ex.part === "拉伸" ? "连续完成" : `${ex.rest} 秒休息`}</span></button><div class="edit-panel surface-card ${open ? "open" : ""}" id="edit-${ex.id}"><div class="field-grid"><div class="field"><label for="sets-${ex.id}">组数</label><input id="sets-${ex.id}" data-edit-field="sets" data-ex="${ex.id}" type="number" min="1" max="10" value="${ex.sets}"></div><div class="field"><label for="rest-${ex.id}">间歇秒数</label><input id="rest-${ex.id}" data-edit-field="rest" data-ex="${ex.id}" type="number" min="0" max="600" value="${ex.rest}"></div><div class="field field-wide"><label for="reps-${ex.id}">次数目标</label><input id="reps-${ex.id}" data-edit-field="repsLabel" data-ex="${ex.id}" type="text" value="${escapeHtml(ex.repsLabel)}"></div></div><div class="edit-actions"><button class="ghost-btn btn-small" data-action="reset-ex" data-ex="${ex.id}">恢复默认</button><span class="subtle">改动自动保存</span></div></div></div>`;
 }
 function renderPlayer() {
   const s = state.session; const ex = s.exercises[s.exerciseIndex]; const totalSets = s.exercises.reduce((sum, e) => sum + e.sets, 0); const progress = (s.completedSets / totalSets) * 100;
   setDepth("mid", "underwater");
-  app.innerHTML = `<main class="page player-page"><header class="player-header"><button class="back-btn" data-action="quit">${ICONS.close}</button><div class="player-title"><span class="eyebrow">${s.day.title}</span><h1>${escapeHtml(ex.name)}</h1><p class="subtle">${escapeHtml(ex.part)} · 第 ${s.setIndex + 1} 组 / 共 ${ex.sets} 组</p></div><button class="icon-btn" data-action="toggle-mute" aria-label="${state.muted ? "打开声音" : "静音"}">${state.muted ? ICONS.mute : ICONS.volume}</button></header><div class="progress-track"><span style="width:${Math.min(100, progress)}%"></span></div><section class="player-stage"><video id="exercise-video" autoplay muted loop playsinline src="videos/clips/${ex.id}.mp4"></video><div class="cue-card"><span class="cue-label">动作要领</span><p>${escapeHtml(ex.cue)}</p></div></section><div class="player-bottom"><button class="primary-btn btn-wide btn-large" data-action="complete-set">完成本组</button><p class="subtle" style="text-align:center;margin-top:10px">目标：${escapeHtml(ex.repsLabel)}</p></div></main>`;
+  app.innerHTML = `<main class="page player-page"><header class="player-header"><button class="back-btn" data-action="quit">${ICONS.close}</button><div class="player-title"><span class="eyebrow">${s.day.title}</span><h1>${escapeHtml(ex.name)}</h1><p class="subtle">${escapeHtml(ex.part)} · 第 ${s.setIndex + 1} 组 / 共 ${ex.sets} 组</p></div><button class="icon-btn" data-action="toggle-mute" aria-label="${state.muted ? "打开声音" : "静音"}">${state.muted ? ICONS.mute : ICONS.volume}</button></header><div class="progress-track"><span style="width:${Math.min(100, progress)}%"></span></div><section class="player-stage"><div class="video-loading" id="video-loading">视频加载中</div><video id="exercise-video" autoplay muted loop playsinline src="videos/clips/${ex.id}.mp4"></video><div class="cue-card"><span class="cue-label">动作要领</span><p>${escapeHtml(ex.cue)}</p></div></section><div class="player-bottom"><button class="primary-btn btn-wide btn-large" data-action="complete-set">完成本组</button><p class="subtle" style="text-align:center;margin-top:10px">目标：${escapeHtml(ex.repsLabel)}</p></div></main>`;
   const video = document.querySelector("#exercise-video");
   if (video) {
-    video.addEventListener("error", () => { video.remove(); const stage = document.querySelector(".player-stage"); if (stage && !stage.querySelector(".no-video-note")) { const note = document.createElement("small"); note.className = "no-video-note"; note.textContent = "该动作教学视频待补充，照着要领完成即可"; const cue = stage.querySelector(".cue-card p"); if (cue) cue.after(note); } });
-    video.addEventListener("loadeddata", () => { video.muted = state.muted; video.play().catch(() => {}); });
+    video.addEventListener("error", () => { video.remove(); const loader = document.querySelector("#video-loading"); if (loader) loader.remove(); const stage = document.querySelector(".player-stage"); if (stage && !stage.querySelector(".no-video-note")) { const note = document.createElement("small"); note.className = "no-video-note"; note.textContent = "该动作教学视频待补充，照着要领完成即可"; const cue = stage.querySelector(".cue-card p"); if (cue) cue.after(note); } });
+    video.addEventListener("loadeddata", () => { const loader = document.querySelector("#video-loading"); if (loader) loader.remove(); video.muted = state.muted; video.play().catch(() => {}); });
   }
+  const nextEx = s.exercises[s.exerciseIndex + 1];
+  if (nextEx) prefetchClip(nextEx.id);
   acquireWakeLock();
 }
 function renderHistory() {
@@ -182,6 +194,7 @@ function recordSet(reps) {
   if (isSupersetB && !isLastSet) { s.exerciseIndex -= 1; s.setIndex += 1; beginRest(ex.rest || settings().rest); return; }
   if (isLastSet && !nextEx) { releaseWakeLock(); vibrate([200, 100, 200]); go("complete"); return; }
   if (isLastSet) { s.exerciseIndex += 1; s.setIndex = 0; } else { s.setIndex += 1; }
+  if (ex.part === "热身" || ex.part === "拉伸") { render(); return; }
   beginRest(ex.rest || settings().rest);
 }
 function beginRest(seconds) {
@@ -193,6 +206,7 @@ function beginRest(seconds) {
 function unlockAudio() { if (!state.audio) { const AudioCtx = window.AudioContext || window.webkitAudioContext; if (AudioCtx) state.audio = new AudioCtx(); } if (state.audio && state.audio.state === "suspended") state.audio.resume().catch(() => {}); }
 function beep(frequency, duration) { if (!state.audio) return; const osc = state.audio.createOscillator(); const gain = state.audio.createGain(); osc.frequency.value = frequency; osc.type = "sine"; gain.gain.setValueAtTime(.001, state.audio.currentTime); gain.gain.exponentialRampToValueAtTime(.12, state.audio.currentTime + .015); gain.gain.exponentialRampToValueAtTime(.001, state.audio.currentTime + duration); osc.connect(gain).connect(state.audio.destination); osc.start(); osc.stop(state.audio.currentTime + duration + .02); }
 function vibrate(pattern) { if (navigator.vibrate) navigator.vibrate(pattern); }
+function prefetchClip(id) { fetch("videos/clips/" + id + ".mp4").then(r => { if (r.ok) return r.blob(); }).catch(() => {}); }
 async function acquireWakeLock() { if (!("wakeLock" in navigator) || state.view !== "player") return; try { state.wakeLock = await navigator.wakeLock.request("screen"); } catch {} }
 function releaseWakeLock() { if (state.wakeLock) { state.wakeLock.release().catch(() => {}); state.wakeLock = null; } }
 function saveSession() { const s = state.session; const history = store.get("fs4_history", []); history.unshift({ date: new Date().toISOString(), dayId: s.day.id, dayTitle: s.day.title, durationSec: Math.floor((Date.now() - s.startedAt) / 1000), items: s.items.filter(item => item.sets.length) }); store.set("fs4_history", history); state.session = null; go("home"); showToast("已保存到航海日志"); }
