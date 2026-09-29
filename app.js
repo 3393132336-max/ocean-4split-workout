@@ -183,6 +183,7 @@ function renderComplete() {
   app.innerHTML = `<main class="page complete-page"><section class="complete-card surface-card"><div class="complete-sun"></div><span class="eyebrow">SURFACE COMPLETE</span><h1 style="margin-top:10px">浮出水面</h1><p class="subtle">这次下潜完成得很好。把今天的节奏留在日志里。</p><div class="complete-stats"><div class="complete-stat"><strong>${formatDuration(Math.floor((Date.now() - s.startedAt) / 1000))}</strong><span>总时长</span></div><div class="complete-stat"><strong>${s.completedSets}</strong><span>完成组数</span></div></div><button class="primary-btn btn-wide btn-large" data-action="save-session">保存并返回</button></section></main>`;
 }
 function startSession(dayId) {
+  unlockAudio();
   const day = dayData(dayId); state.session = { day: { ...day, exercises: day.exercises }, exercises: day.exercises, exerciseIndex: 0, setIndex: 0, completedSets: 0, items: day.exercises.map(ex => ({ id: ex.id, name: ex.name, sets: [] })), startedAt: Date.now() }; state.muted = settings().musicMode || !settings().videoSound; state.paused = false; go("player"); }
 function currentExercise() { return state.session.exercises[state.session.exerciseIndex]; }
 function completeSet() {
@@ -219,7 +220,7 @@ function beginRest(seconds) {
 function unlockAudio() { if (!state.audio) { const AudioCtx = window.AudioContext || window.webkitAudioContext; if (AudioCtx) state.audio = new AudioCtx(); } if (state.audio && state.audio.state === "suspended") state.audio.resume().catch(() => {}); }
 function beep(frequency, duration) { if (!state.audio) return; const osc = state.audio.createOscillator(); const gain = state.audio.createGain(); osc.frequency.value = frequency; osc.type = "sine"; gain.gain.setValueAtTime(.001, state.audio.currentTime); gain.gain.exponentialRampToValueAtTime(.12, state.audio.currentTime + .015); gain.gain.exponentialRampToValueAtTime(.001, state.audio.currentTime + duration); osc.connect(gain).connect(state.audio.destination); osc.start(); osc.stop(state.audio.currentTime + duration + .02); }
 function rhythmBeep(frequency, duration) { const s = settings(); if (s.musicMode || !s.rhythmSound) return; beep(frequency, duration); }
-function speakCount(n) { const s = settings(); if (s.musicMode || !s.voiceCount || !("speechSynthesis" in window)) return; try { const u = new SpeechSynthesisUtterance(String(n)); u.lang = "zh-CN"; u.rate = 1.15; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch {} }
+function speakCount(n) { const s = settings(); if (s.musicMode || !s.voiceCount || !("speechSynthesis" in window)) return; try { const u = new SpeechSynthesisUtterance(String(n)); u.lang = "zh-CN"; u.rate = 1.15; u.volume = 1; if (speechSynthesis.speaking) speechSynthesis.cancel(); setTimeout(() => speechSynthesis.speak(u), 60); } catch {} }
 function repTarget(repsLabel) { const m = String(repsLabel).match(/\d+/); return m ? Number(m[0]) : 0; }
 function startTicker(ex) {
   stopTicker();
@@ -260,6 +261,7 @@ function saveRestday() { const history = store.get("fs4_history", []); history.u
 function updateOverride(id, field, value) { const all = overrides(); all[id] = { ...(all[id] || {}) }; all[id][field] = field === "sets" ? Math.max(1, Number(value) || 1) : field === "rest" ? Math.max(0, Number(value) || 0) : value; saveOverrides(all); }
 
 document.addEventListener("click", event => {
+  unlockAudio();
   const actionEl = event.target.closest("[data-action]"); const padEl = event.target.closest("[data-pad]");
   if (padEl) { const value = padEl.dataset.pad; if (value === "clear") state.numpadValue = ""; else if (value === "submit") { recordSet(state.numpadValue || "0"); return; } else if (state.numpadValue.length < 2) state.numpadValue += value; const display = document.querySelector("#numpad-value"); if (display) display.textContent = state.numpadValue || "0"; return; }
   if (!actionEl) return; const action = actionEl.dataset.action;

@@ -1,4 +1,4 @@
-const CACHE_VERSION = "fs4-shell-v8";
+const CACHE_VERSION = "fs4-shell-v9";
 const SHELL = [
   "./",
   "./index.html",
