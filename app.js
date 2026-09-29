@@ -184,6 +184,7 @@ function renderComplete() {
 }
 function startSession(dayId) {
   unlockAudio();
+  for (let i = 1; i <= 20; i += 1) loadVoice(i);
   const day = dayData(dayId); state.session = { day: { ...day, exercises: day.exercises }, exercises: day.exercises, exerciseIndex: 0, setIndex: 0, completedSets: 0, items: day.exercises.map(ex => ({ id: ex.id, name: ex.name, sets: [] })), startedAt: Date.now() }; state.muted = settings().musicMode || !settings().videoSound; state.paused = false; go("player"); }
 function currentExercise() { return state.session.exercises[state.session.exerciseIndex]; }
 function completeSet() {
@@ -218,10 +219,12 @@ function beginRest(seconds) {
   state.restTimer = setInterval(() => { state.restLeft -= 1; const number = document.querySelector("#rest-number"); if (number) number.textContent = state.restLeft; if (state.restLeft <= 3 && state.restLeft > 0) rhythmBeep(880, .15); if (state.restLeft <= 0) { clearInterval(state.restTimer); rhythmBeep(1320, .4); vibrate([200,100,200]); overlay.remove(); render(); } }, 1000);
 }
 function unlockAudio() { if (!state.audio) { const AudioCtx = window.AudioContext || window.webkitAudioContext; if (AudioCtx) state.audio = new AudioCtx(); } if (state.audio && state.audio.state === "suspended") state.audio.resume().catch(() => {}); }
-function beep(frequency, duration) { if (!state.audio) return; const osc = state.audio.createOscillator(); const gain = state.audio.createGain(); osc.frequency.value = frequency; osc.type = "triangle"; gain.gain.setValueAtTime(.001, state.audio.currentTime); gain.gain.exponentialRampToValueAtTime(.45, state.audio.currentTime + .015); gain.gain.exponentialRampToValueAtTime(.001, state.audio.currentTime + duration); osc.connect(gain).connect(state.audio.destination); osc.start(); osc.stop(state.audio.currentTime + duration + .02); }
+function beep(frequency, duration) { if (!state.audio) return; const t = state.audio.currentTime; const gain = state.audio.createGain(); gain.gain.setValueAtTime(.001, t); gain.gain.exponentialRampToValueAtTime(.85, t + .012); gain.gain.exponentialRampToValueAtTime(.001, t + duration); gain.connect(state.audio.destination); [frequency, frequency * 2].forEach((f, i) => { const osc = state.audio.createOscillator(); osc.frequency.value = f; osc.type = "triangle"; const g = state.audio.createGain(); g.gain.value = i ? .3 : 1; osc.connect(g).connect(gain); osc.start(t); osc.stop(t + duration + .02); }); }
 function rhythmBeep(frequency, duration) { const s = settings(); if (s.musicMode || !s.rhythmSound) return; beep(frequency, duration); }
-const voicePlayer = new Audio();
-function speakCount(n) { const s = settings(); if (s.musicMode || !s.voiceCount) return; if (n < 1 || n > 40) return; try { voicePlayer.src = "assets/voice/n" + n + ".mp3"; voicePlayer.currentTime = 0; voicePlayer.play().catch(() => {}); } catch {} }
+const voiceBuffers = {};
+function loadVoice(n) { if (!voiceBuffers[n]) voiceBuffers[n] = fetch("assets/voice/n" + n + ".mp3").then(r => r.arrayBuffer()).then(b => state.audio ? state.audio.decodeAudioData(b) : null).catch(() => null); return voiceBuffers[n]; }
+function playVoiceBuffer(buffer, volume) { if (!buffer || !state.audio) return; const src = state.audio.createBufferSource(); const gain = state.audio.createGain(); gain.gain.value = volume; src.buffer = buffer; src.connect(gain).connect(state.audio.destination); src.start(); }
+function speakCount(n) { const s = settings(); if (s.musicMode || !s.voiceCount) return; if (n < 1 || n > 40) return; unlockAudio(); loadVoice(n).then(buffer => playVoiceBuffer(buffer, .95)); }
 function repTarget(repsLabel) { const m = String(repsLabel).match(/\d+/); return m ? Number(m[0]) : 0; }
 function startTicker(ex) {
   stopTicker();
