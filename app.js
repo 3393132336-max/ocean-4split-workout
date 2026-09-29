@@ -64,17 +64,19 @@ const ICONS = {
   volume: '<svg viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6l-5 4Z"/><path d="M16 9a5 5 0 0 1 0 6M19 6a9 9 0 0 1 0 12"/></svg>',
   mute: '<svg viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6l-5 4Z"/><path d="m18 9 4 6m0-6-4 6"/></svg>',
   close: '<svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>',
-  trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7l1-3h4l1 3"/></svg>'
+  trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7l1-3h4l1 3"/></svg>',
+  pause: '<svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14" stroke-width="2.6"/></svg>',
+  skip: '<svg viewBox="0 0 24 24"><path d="m6 5 8 7-8 7Z" fill="currentColor" stroke="none"/><path d="M16 5v14"/></svg>'
 };
 const store = {
   get(key, fallback) { try { const value = localStorage.getItem(key); return value ? JSON.parse(value) : fallback; } catch { return fallback; } },
   set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 };
-const state = { view: "home", dayId: null, openEdit: null, session: null, restTimer: null, restLeft: 0, restTotal: 0, numpadValue: "", wakeLock: null, audio: null, muted: true };
+const state = { view: "home", dayId: null, openEdit: null, session: null, restTimer: null, restLeft: 0, restTotal: 0, numpadValue: "", wakeLock: null, audio: null, muted: true, paused: false, tick: null };
 const app = document.querySelector("#app");
 const transition = document.querySelector("#transition");
 const toast = document.querySelector("#toast");
-const defaults = { rest: 60, absEnabled: true, onboardingDone: false };
+const defaults = { rest: 60, absEnabled: true, onboardingDone: false, videoSound: false, rhythmSound: true, voiceCount: false, musicMode: false, tempo: 2.5 };
 function settings() { return { ...defaults, ...store.get("fs4_settings", {}) }; }
 function overrides() { return store.get("fs4_overrides", {}); }
 function saveOverrides(value) { store.set("fs4_overrides", value); }
@@ -95,7 +97,7 @@ function hashFor(view, data) {
   return null;
 }
 function applyHash() {
-  if (state.session) { clearInterval(state.restTimer); releaseWakeLock(); state.session = null; document.querySelectorAll(".rest-overlay").forEach(el => el.remove()); }
+  if (state.session) { clearInterval(state.restTimer); stopTicker(); state.paused = false; releaseWakeLock(); state.session = null; document.querySelectorAll(".rest-overlay").forEach(el => el.remove()); }
   const h = location.hash;
   if (h.startsWith("#/play/")) { const parts = h.slice(7).split("@"); if (PLAN[parts[0]]) { startSession(parts[0]); if (parts[1]) { state.session.exerciseIndex = Math.min(Number(parts[1]) || 0, state.session.exercises.length - 1); render(); } return; } }
   if (h.startsWith("#/day/") && PLAN[h.slice(6)]) { state.view = "day"; state.dayId = h.slice(6); state.openEdit = null; }
@@ -127,14 +129,19 @@ function render() {
   else if (state.view === "restday") renderRestday();
   else if (state.view === "complete") renderComplete();
 }
+const DAY_ORDER = ["day1", "day2", "day4", "day3"];
+function suggestDayId() { const history = store.get("fs4_history", []); const last = history.find(h => DAY_ORDER.includes(h.dayId)); if (!last) return DAY_ORDER[0]; return DAY_ORDER[(DAY_ORDER.indexOf(last.dayId) + 1) % DAY_ORDER.length]; }
 function renderHome() {
   setDepth("surface", "surface");
-  const days = [PLAN.day1, PLAN.day2, PLAN.day4, PLAN.day3];
-  app.innerHTML = `<main class="page">${pageHeader("海面四分化", "HOME TRAINING")}<section class="hero-card surface-card"><div class="hero-copy"><span class="eyebrow">今日训练</span><h2>把每一次下潜<br>练成更好的自己</h2><p class="subtle">四日循环训练。跟随节奏，记录每一组进步。</p></div></section><div class="section-heading"><h2>训练日</h2><span class="subtle">四分化计划</span></div><section class="day-grid">${days.map((day, index) => { const total = dayData(day.id).exercises.reduce((sum, ex) => sum + ex.sets, 0); return `<button class="day-card surface-card" data-action="day" data-day="${day.id}"><div><span class="day-index">DAY ${index + 1}</span><h3>${day.title}</h3></div><div class="day-meta"><span>${day.short} · ${day.exercises.length} 动作 · ${total} 组</span></div></button>`; }).join("")}<button class="rest-card surface-card" data-action="restday"><span class="sun-mark"></span><span style="flex:1"><strong>Day 5 · 休息日</strong><span class="subtle" style="display:block;margin-top:4px">恢复也是训练的一部分</span></span><span>${ICONS.back}</span></button></section>${nav("home")}</main>`;
+  const days = DAY_ORDER.map(id => PLAN[id]);
+  const today = dayData(suggestDayId());
+  const todaySets = today.exercises.reduce((sum, ex) => sum + ex.sets, 0);
+  const estMin = Math.max(15, Math.round(todaySets * 1.8));
+  app.innerHTML = `<main class="page">${pageHeader("海面四分化", "HOME TRAINING")}<section class="hero-card surface-card"><div class="hero-copy"><span class="eyebrow">今日训练 · ${today.label}</span><h2>${today.title}</h2><p class="hero-meta">${today.exercises.length} 个动作 · ${todaySets} 组 · 约 ${estMin} 分钟</p><button class="primary-btn hero-cta" data-action="start" data-day="${today.id}">${ICONS.play} 开始训练</button></div></section><div class="section-heading"><h2>训练日</h2><span class="subtle">四分化计划</span></div><section class="day-grid">${days.map((day, index) => { const total = dayData(day.id).exercises.reduce((sum, ex) => sum + ex.sets, 0); return `<button class="day-card surface-card" data-action="day" data-day="${day.id}"><div><span class="day-index">DAY ${index + 1}</span><h3>${day.title}</h3></div><div class="day-meta"><span>${day.short} · ${day.exercises.length} 动作 · ${total} 组</span></div></button>`; }).join("")}<button class="rest-card surface-card" data-action="restday"><span class="sun-mark"></span><span style="flex:1"><strong>Day 5 · 休息日</strong><span class="subtle" style="display:block;margin-top:4px">恢复也是训练的一部分</span></span><span>${ICONS.back}</span></button></section>${nav("home")}</main>`;
 }
 function groupOf(ex) { return ex.part === "热身" ? "热身" : ex.part.includes("超级组") ? "超级组" : ex.part.includes("腹肌") ? "腹肌" : ex.part === "拉伸" ? "拉伸" : "主项"; }
 function renderDay() {
-  const day = dayData(state.dayId); setDepth("shallows", "surface");
+  const day = dayData(state.dayId); setDepth("shallows", state.dayId);
   const groups = [...new Set(day.exercises.map(groupOf))];
   app.innerHTML = `<main class="page"><header class="page-header"><button class="back-btn" data-action="home">${ICONS.back}</button><div style="flex:1"><span class="eyebrow">${day.label}</span><h1>${day.title}</h1></div><button class="icon-btn" data-action="settings">${ICONS.settings}</button></header><section class="day-summary surface-card"><div><strong>${day.exercises.length} 个动作</strong><p class="summary-count">${day.exercises.reduce((sum, ex) => sum + ex.sets, 0)} 组训练容量</p></div><span class="day-index">今日计划</span></section>${groups.map(group => `<section><div class="group-label">${group}</div><div class="exercise-list">${day.exercises.filter(ex => groupOf(ex) === group).map(exerciseRow).join("")}</div></section>`).join("")}<div class="start-wrap"><button class="primary-btn btn-wide btn-large" data-action="start" data-day="${day.id}">${ICONS.play} 开始训练</button></div>${nav("home")}</main>`;
   day.exercises.slice(0, 2).forEach(ex => prefetchClip(ex.id));
@@ -145,15 +152,17 @@ function exerciseRow(ex) {
 }
 function renderPlayer() {
   const s = state.session; const ex = s.exercises[s.exerciseIndex]; const totalSets = s.exercises.reduce((sum, e) => sum + e.sets, 0); const progress = (s.completedSets / totalSets) * 100;
+  state.paused = false;
   setDepth("mid", "underwater");
-  app.innerHTML = `<main class="page player-page"><header class="player-header"><button class="back-btn" data-action="quit">${ICONS.close}</button><div class="player-title"><span class="eyebrow">${s.day.title}</span><h1>${escapeHtml(ex.name)}</h1><p class="subtle">${escapeHtml(ex.part)} · 第 ${s.setIndex + 1} 组 / 共 ${ex.sets} 组</p></div><button class="icon-btn" data-action="toggle-mute" aria-label="${state.muted ? "打开声音" : "静音"}">${state.muted ? ICONS.mute : ICONS.volume}</button></header><div class="progress-track"><span style="width:${Math.min(100, progress)}%"></span></div><section class="player-stage"><div class="video-loading" id="video-loading">视频加载中</div><video id="exercise-video" autoplay muted loop playsinline src="videos/clips/${ex.id}.mp4"></video><div class="cue-card collapsed" data-action="toggle-cue"><span class="cue-label">动作要领</span><p class="cue-text">${escapeHtml(ex.cue)}</p></div></section><div class="player-bottom"><button class="primary-btn btn-wide btn-large" data-action="complete-set">完成本组</button><p class="subtle" style="text-align:center;margin-top:10px">目标：${escapeHtml(ex.repsLabel)}</p></div></main>`;
+  app.innerHTML = `<main class="page player-page"><header class="player-header"><button class="back-btn" data-action="quit">${ICONS.close}</button><div class="player-title"><span class="eyebrow">${s.day.title}</span><h1>${escapeHtml(ex.name)}</h1><p class="subtle">${escapeHtml(ex.part)} · 第 ${s.setIndex + 1} 组 / 共 ${ex.sets} 组</p></div><button class="icon-btn" data-action="pause" aria-label="暂停">${ICONS.pause}</button><button class="icon-btn" data-action="toggle-mute" aria-label="${state.muted ? "打开声音" : "静音"}">${state.muted ? ICONS.mute : ICONS.volume}</button></header><div class="progress-track"><span style="width:${Math.min(100, progress)}%"></span></div><section class="player-stage"><div class="video-loading" id="video-loading">视频加载中</div><video id="exercise-video" autoplay muted loop playsinline src="videos/clips/${ex.id}.mp4"></video><div class="rep-chip" id="rep-count">0</div></section><div class="cue-bar"><span class="cue-label">动作要领</span><p>${escapeHtml(ex.cue)}</p></div><div class="player-bottom"><button class="primary-btn btn-wide btn-large" data-action="complete-set">完成本组</button><div class="player-sub-actions"><button class="ghost-btn btn-small" data-action="skip-set">${ICONS.skip} 跳过本组</button><p class="subtle">目标：${escapeHtml(ex.repsLabel)}</p></div></div></main>`;
   const video = document.querySelector("#exercise-video");
   if (video) {
-    video.addEventListener("error", () => { video.remove(); const loader = document.querySelector("#video-loading"); if (loader) loader.remove(); const stage = document.querySelector(".player-stage"); if (stage && !stage.querySelector(".no-video-note")) { const note = document.createElement("small"); note.className = "no-video-note"; note.textContent = "该动作教学视频待补充，照着要领完成即可"; const cue = stage.querySelector(".cue-card p"); if (cue) cue.after(note); } });
+    video.addEventListener("error", () => { video.remove(); const loader = document.querySelector("#video-loading"); if (loader) loader.remove(); if (!document.querySelector(".no-video-note")) { const note = document.createElement("small"); note.className = "no-video-note"; note.textContent = "该动作教学视频待补充，照着要领完成即可"; const bar = document.querySelector(".cue-bar p"); if (bar) bar.after(note); } });
     video.addEventListener("loadeddata", () => { const loader = document.querySelector("#video-loading"); if (loader) loader.remove(); video.muted = state.muted; video.play().catch(() => {}); });
   }
   const nextEx = s.exercises[s.exerciseIndex + 1];
   if (nextEx) prefetchClip(nextEx.id);
+  startTicker(ex);
   acquireWakeLock();
 }
 function renderHistory() {
@@ -162,7 +171,8 @@ function renderHistory() {
 }
 function renderSettings() {
   setDepth("surface", "surface"); const s = settings();
-  app.innerHTML = `<main class="page">${pageHeader("设置", "PREFERENCES")}<section class="settings-list"><div class="setting-row surface-card"><div><p>全局组间歇</p><span class="subtle">动作未单独设置时使用</span></div><div class="row-actions"><input id="global-rest" class="field" style="width:86px;min-height:48px;border-radius:12px;border:1px solid var(--line);padding:0 10px;background:rgba(250,253,254,.8)" type="number" min="0" max="600" value="${s.rest}"><span class="subtle">秒</span></div></div><label class="setting-row surface-card"><div><p>腹肌动作</p><span class="subtle">在 Day 4 中加入腹肌训练</span></div><span class="switch"><input id="abs-switch" type="checkbox" ${s.absEnabled ? "checked" : ""}><span></span></span></label><div class="setting-row surface-card"><div><p>离线模式</p><span class="subtle">页面、计划和提示音无需网络</span></div><strong style="color:var(--mid)">已就绪</strong></div></section><div style="margin-top:22px"><button class="ghost-btn btn-wide" data-action="home">${ICONS.back} 返回训练</button></div>${nav("settings")}</main>`;
+  const toggle = (key, title, hint) => `<label class="setting-row surface-card"><div><p>${title}</p><span class="subtle">${hint}</span></div><span class="switch"><input data-setting="${key}" type="checkbox" ${s[key] ? "checked" : ""}><span></span></span></label>`;
+  app.innerHTML = `<main class="page">${pageHeader("设置", "PREFERENCES")}<section class="settings-list"><div class="setting-row surface-card"><div><p>全局组间歇</p><span class="subtle">动作未单独设置时使用</span></div><div class="row-actions"><input data-setting="rest" class="field" style="width:86px;min-height:48px;border-radius:12px;border:1px solid var(--line);padding:0 10px;background:rgba(250,253,254,.8)" type="number" min="0" max="600" value="${s.rest}"><span class="subtle">秒</span></div></div><div class="setting-row surface-card"><div><p>每组节奏</p><span class="subtle">计次器每次的间隔秒数</span></div><div class="row-actions"><input data-setting="tempo" class="field" style="width:86px;min-height:48px;border-radius:12px;border:1px solid var(--line);padding:0 10px;background:rgba(250,253,254,.8)" type="number" min="1" max="8" step="0.5" value="${s.tempo}"><span class="subtle">秒/次</span></div></div>${toggle("absEnabled", "腹肌动作", "在肩部训练日中加入腹肌训练")}${toggle("videoSound", "视频指导声", "播放动作教学视频的原声")}${toggle("rhythmSound", "节奏提示音", "计次、组间歇的蜂鸣提示")}${toggle("voiceCount", "语音报数", "用语音念出当前次数")}${toggle("musicMode", "外放音乐模式", "App 全部静音只留震动，不打断网易云等外部音乐")}<div class="setting-row surface-card"><div><p>离线模式</p><span class="subtle">页面、计划和提示音无需网络</span></div><strong style="color:var(--mid)">已就绪</strong></div></section><div style="margin-top:22px"><button class="ghost-btn btn-wide" data-action="home">${ICONS.back} 返回训练</button></div>${nav("settings")}</main>`;
 }
 function renderRestday() {
   setDepth("surface", "surface");
@@ -173,7 +183,7 @@ function renderComplete() {
   app.innerHTML = `<main class="page complete-page"><section class="complete-card surface-card"><div class="complete-sun"></div><span class="eyebrow">SURFACE COMPLETE</span><h1 style="margin-top:10px">浮出水面</h1><p class="subtle">这次下潜完成得很好。把今天的节奏留在日志里。</p><div class="complete-stats"><div class="complete-stat"><strong>${formatDuration(Math.floor((Date.now() - s.startedAt) / 1000))}</strong><span>总时长</span></div><div class="complete-stat"><strong>${s.completedSets}</strong><span>完成组数</span></div></div><button class="primary-btn btn-wide btn-large" data-action="save-session">保存并返回</button></section></main>`;
 }
 function startSession(dayId) {
-  const day = dayData(dayId); state.session = { day: { ...day, exercises: day.exercises }, exercises: day.exercises, exerciseIndex: 0, setIndex: 0, completedSets: 0, items: day.exercises.map(ex => ({ id: ex.id, name: ex.name, sets: [] })), startedAt: Date.now() }; state.muted = true; go("player"); }
+  const day = dayData(dayId); state.session = { day: { ...day, exercises: day.exercises }, exercises: day.exercises, exerciseIndex: 0, setIndex: 0, completedSets: 0, items: day.exercises.map(ex => ({ id: ex.id, name: ex.name, sets: [] })), startedAt: Date.now() }; state.muted = settings().musicMode || !settings().videoSound; state.paused = false; go("player"); }
 function currentExercise() { return state.session.exercises[state.session.exerciseIndex]; }
 function completeSet() {
   if (document.querySelector(".rest-overlay")) return;
@@ -183,9 +193,10 @@ function completeSet() {
 }
 function renderNumpad() {
   const ex = currentExercise(); const pad = document.createElement("div"); pad.className = "rest-overlay"; pad.innerHTML = `<section class="rest-sheet"><span class="eyebrow">记录实际完成</span><h2>${escapeHtml(ex.name)}</h2><p class="subtle" style="margin-top:8px">输入本组次数或秒数</p><div class="numpad-display" id="numpad-value">${state.numpadValue || "0"}</div><div class="numpad">${[1,2,3,4,5,6,7,8,9].map(n => `<button class="pad-key" data-pad="${n}">${n}</button>`).join("")}<button class="pad-key" data-pad="clear">清除</button><button class="pad-key" data-pad="0">0</button><button class="pad-key" data-pad="submit">完成</button></div></section>`; document.body.appendChild(pad); }
-function recordSet(reps) {
+function recordSet(reps, record = true) {
   const s = state.session; const ex = currentExercise();
-  s.items[s.exerciseIndex].sets.push({ reps: String(reps).replace(/次/g, "") }); s.completedSets += 1;
+  if (record) { s.items[s.exerciseIndex].sets.push({ reps: String(reps).replace(/次/g, "") }); s.completedSets += 1; }
+  stopTicker();
   document.querySelectorAll(".rest-overlay").forEach(el => el.remove());
   const prevEx = s.exercises[s.exerciseIndex - 1]; const nextEx = s.exercises[s.exerciseIndex + 1];
   const isSupersetB = prevEx && prevEx.supersetWith === ex.id;
@@ -199,18 +210,52 @@ function recordSet(reps) {
   beginRest(ex.rest || settings().rest);
 }
 function beginRest(seconds) {
+  stopTicker();
   clearInterval(state.restTimer); state.restLeft = Number(seconds) || 0; state.restTotal = state.restLeft;
   if (state.restLeft <= 0) { render(); return; }
   const overlay = document.createElement("div"); overlay.className = "rest-overlay"; overlay.id = "rest-modal"; overlay.innerHTML = `<section class="rest-sheet"><span class="eyebrow">浮出水面透气</span><h2>组间休息</h2><div class="rest-number" id="rest-number">${state.restLeft}</div><div class="rest-actions"><button class="primary-btn btn-wide btn-large" data-action="skip-rest">跳过休息</button><button class="ghost-btn btn-wide btn-large" data-action="add-rest">+15秒</button></div></section>`; document.body.appendChild(overlay);
-  state.restTimer = setInterval(() => { state.restLeft -= 1; const number = document.querySelector("#rest-number"); if (number) number.textContent = state.restLeft; if (state.restLeft <= 3 && state.restLeft > 0) beep(880, .15); if (state.restLeft <= 0) { clearInterval(state.restTimer); beep(1320, .4); vibrate([200,100,200]); overlay.remove(); render(); } }, 1000);
+  state.restTimer = setInterval(() => { state.restLeft -= 1; const number = document.querySelector("#rest-number"); if (number) number.textContent = state.restLeft; if (state.restLeft <= 3 && state.restLeft > 0) rhythmBeep(880, .15); if (state.restLeft <= 0) { clearInterval(state.restTimer); rhythmBeep(1320, .4); vibrate([200,100,200]); overlay.remove(); render(); } }, 1000);
 }
 function unlockAudio() { if (!state.audio) { const AudioCtx = window.AudioContext || window.webkitAudioContext; if (AudioCtx) state.audio = new AudioCtx(); } if (state.audio && state.audio.state === "suspended") state.audio.resume().catch(() => {}); }
 function beep(frequency, duration) { if (!state.audio) return; const osc = state.audio.createOscillator(); const gain = state.audio.createGain(); osc.frequency.value = frequency; osc.type = "sine"; gain.gain.setValueAtTime(.001, state.audio.currentTime); gain.gain.exponentialRampToValueAtTime(.12, state.audio.currentTime + .015); gain.gain.exponentialRampToValueAtTime(.001, state.audio.currentTime + duration); osc.connect(gain).connect(state.audio.destination); osc.start(); osc.stop(state.audio.currentTime + duration + .02); }
+function rhythmBeep(frequency, duration) { const s = settings(); if (s.musicMode || !s.rhythmSound) return; beep(frequency, duration); }
+function speakCount(n) { const s = settings(); if (s.musicMode || !s.voiceCount || !("speechSynthesis" in window)) return; try { const u = new SpeechSynthesisUtterance(String(n)); u.lang = "zh-CN"; u.rate = 1.15; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch {} }
+function repTarget(repsLabel) { const m = String(repsLabel).match(/\d+/); return m ? Number(m[0]) : 0; }
+function startTicker(ex) {
+  stopTicker();
+  const target = repTarget(ex.repsLabel);
+  const isStopwatch = ex.inputMode === "numpad" || /秒/.test(ex.repsLabel) || !target;
+  if (isStopwatch) {
+    state.tick = { count: 0, target: 0, timerId: setInterval(() => { if (!state.paused && state.tick) { state.tick.count += 1; updateTickUI(); } }, 1000) };
+  } else {
+    state.tick = { count: 0, target, timerId: setInterval(() => {
+      if (state.paused || !state.tick) return;
+      state.tick.count += 1; updateTickUI();
+      if (state.tick.count < target) { rhythmBeep(660, .06); speakCount(state.tick.count); }
+      else if (state.tick.count === target) { rhythmBeep(1180, .35); speakCount(state.tick.count); vibrate([120, 60, 120]); showToast("到达目标次数"); }
+      else if (state.tick.count > target + 6) stopTicker();
+      else rhythmBeep(520, .05);
+    }, Math.max(1, Number(settings().tempo) || 2.5) * 1000) };
+  }
+}
+function stopTicker() { if (state.tick && state.tick.timerId) clearInterval(state.tick.timerId); state.tick = null; }
+function updateTickUI() { const el = document.querySelector("#rep-count"); if (el && state.tick) el.innerHTML = state.tick.target ? `${state.tick.count}<small>/${state.tick.target}</small>` : `${state.tick.count}<small>秒</small>`; }
+function togglePause() {
+  state.paused = !state.paused; const v = document.querySelector("#exercise-video");
+  if (state.paused) { if (v) v.pause(); showPauseOverlay(); }
+  else { document.querySelector("#pause-modal")?.remove(); if (v) v.play().catch(() => {}); }
+}
+function showPauseOverlay() {
+  document.querySelector("#pause-modal")?.remove();
+  const overlay = document.createElement("div"); overlay.className = "rest-overlay"; overlay.id = "pause-modal";
+  overlay.innerHTML = `<section class="rest-sheet"><span class="eyebrow">悬停在海水中</span><h2>已暂停</h2><p class="subtle" style="margin-top:8px">视频与计次都已暂停</p><div class="rest-actions" style="margin-top:18px"><button class="primary-btn btn-wide btn-large" data-action="pause">继续训练</button><button class="ghost-btn btn-wide btn-large" data-action="quit">结束训练</button></div></section>`;
+  document.body.appendChild(overlay);
+}
 function vibrate(pattern) { if (navigator.vibrate) navigator.vibrate(pattern); }
 function prefetchClip(id) { fetch("videos/clips/" + id + ".mp4").then(r => { if (r.ok) return r.blob(); }).catch(() => {}); }
 async function acquireWakeLock() { if (!("wakeLock" in navigator) || state.view !== "player") return; try { state.wakeLock = await navigator.wakeLock.request("screen"); } catch {} }
 function releaseWakeLock() { if (state.wakeLock) { state.wakeLock.release().catch(() => {}); state.wakeLock = null; } }
-function saveSession() { const s = state.session; const history = store.get("fs4_history", []); history.unshift({ date: new Date().toISOString(), dayId: s.day.id, dayTitle: s.day.title, durationSec: Math.floor((Date.now() - s.startedAt) / 1000), items: s.items.filter(item => item.sets.length) }); store.set("fs4_history", history); state.session = null; go("home"); showToast("已保存到航海日志"); }
+function saveSession() { const s = state.session; stopTicker(); const history = store.get("fs4_history", []); history.unshift({ date: new Date().toISOString(), dayId: s.day.id, dayTitle: s.day.title, durationSec: Math.floor((Date.now() - s.startedAt) / 1000), items: s.items.filter(item => item.sets.length) }); store.set("fs4_history", history); state.session = null; go("home"); showToast("已保存到航海日志"); }
 function saveRestday() { const history = store.get("fs4_history", []); history.unshift({ date: new Date().toISOString(), dayId: "day5", dayTitle: "休息日", durationSec: 0, items: [] }); store.set("fs4_history", history); go("home"); showToast("恢复打卡已记录"); }
 function updateOverride(id, field, value) { const all = overrides(); all[id] = { ...(all[id] || {}) }; all[id][field] = field === "sets" ? Math.max(1, Number(value) || 1) : field === "rest" ? Math.max(0, Number(value) || 0) : value; saveOverrides(all); }
 
@@ -229,15 +274,24 @@ document.addEventListener("click", event => {
   if (action === "complete-set") completeSet();
   if (action === "skip-rest") { clearInterval(state.restTimer); document.querySelector("#rest-modal")?.remove(); render(); }
   if (action === "add-rest") { state.restLeft += 15; const number = document.querySelector("#rest-number"); if (number) number.textContent = state.restLeft; }
-  if (action === "toggle-cue") { const card = document.querySelector(".cue-card"); if (card) card.classList.toggle("collapsed"); }
-  if (action === "toggle-mute") { state.muted = !state.muted; const video = document.querySelector("#exercise-video"); if (video) { video.muted = state.muted; if (!state.muted) video.play().catch(() => {}); } const btn = actionEl; btn.innerHTML = state.muted ? ICONS.mute : ICONS.volume; btn.setAttribute("aria-label", state.muted ? "打开声音" : "静音"); }
-  if (action === "quit") { clearInterval(state.restTimer); document.querySelector("#rest-modal")?.remove(); releaseWakeLock(); state.session = null; go("home"); }
+  if (action === "pause") togglePause();
+  if (action === "skip-set") { vibrate([30]); recordSet(null, false); showToast("已跳过本组"); }
+  if (action === "toggle-mute") { const st = settings(); st.videoSound = !st.videoSound; store.set("fs4_settings", st); state.muted = st.musicMode || !st.videoSound; const video = document.querySelector("#exercise-video"); if (video) { video.muted = state.muted; if (!state.muted) video.play().catch(() => {}); } const btn = actionEl; btn.innerHTML = state.muted ? ICONS.mute : ICONS.volume; btn.setAttribute("aria-label", state.muted ? "打开声音" : "静音"); }
+  if (action === "quit") { clearInterval(state.restTimer); stopTicker(); state.paused = false; document.querySelector("#rest-modal")?.remove(); document.querySelector("#pause-modal")?.remove(); releaseWakeLock(); state.session = null; go("home"); }
   if (action === "save-session") saveSession();
   if (action === "check-rest") saveRestday();
   if (action === "delete-log") { const history = store.get("fs4_history", []); history.splice(Number(actionEl.dataset.index), 1); store.set("fs4_history", history); renderHistory(); }
 });
 document.addEventListener("input", event => { const field = event.target.closest("[data-edit-field]"); if (field) updateOverride(field.dataset.ex, field.dataset.editField, field.value); });
-document.addEventListener("change", event => { if (event.target.id === "global-rest") { const s = settings(); s.rest = Math.max(0, Number(event.target.value) || 0); store.set("fs4_settings", s); showToast("全局间歇已更新"); } if (event.target.id === "abs-switch") { const s = settings(); s.absEnabled = event.target.checked; store.set("fs4_settings", s); showToast(event.target.checked ? "腹肌动作已加入" : "腹肌动作已关闭"); } });
+document.addEventListener("change", event => {
+  const key = event.target.dataset && event.target.dataset.setting;
+  if (!key) return;
+  const s = settings();
+  s[key] = event.target.type === "checkbox" ? event.target.checked : Math.max(0, Number(event.target.value) || 0);
+  store.set("fs4_settings", s);
+  if (key === "videoSound" || key === "musicMode") { state.muted = s.musicMode || !s.videoSound; const video = document.querySelector("#exercise-video"); if (video) video.muted = state.muted; }
+  showToast("设置已保存");
+});
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && state.view === "player") acquireWakeLock(); });
 if (location.hash) applyHash(); else render();
 if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(() => {});

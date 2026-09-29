@@ -1,4 +1,4 @@
-const CACHE_VERSION = "fs4-shell-v6";
+const CACHE_VERSION = "fs4-shell-v7";
 const SHELL = [
   "./",
   "./index.html",
@@ -7,6 +7,10 @@ const SHELL = [
   "./manifest.webmanifest",
   "./assets/bg-surface.jpg",
   "./assets/bg-underwater.jpg",
+  "./assets/bg-day1.jpg",
+  "./assets/bg-day2.jpg",
+  "./assets/bg-day3.jpg",
+  "./assets/bg-day4.jpg",
   "./assets/icon-192.png",
   "./assets/icon-512.png"
 ];
