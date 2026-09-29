@@ -1,4 +1,5 @@
-const CACHE_VERSION = "fs4-shell-v9";
+const CACHE_VERSION = "fs4-shell-v10";
+const VOICE = Array.from({ length: 40 }, (_, i) => `./assets/voice/n${i + 1}.mp3`);
 const SHELL = [
   "./",
   "./index.html",
@@ -15,7 +16,7 @@ const SHELL = [
   "./assets/icon-512.png"
 ];
 self.addEventListener("install", event => {
-  event.waitUntil(caches.open(CACHE_VERSION).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()).catch(() => self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE_VERSION).then(cache => cache.addAll(SHELL.concat(VOICE))).then(() => self.skipWaiting()).catch(() => self.skipWaiting()));
 });
 self.addEventListener("activate", event => {
   event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_VERSION).map(key => caches.delete(key)))).then(() => self.clients.claim()));

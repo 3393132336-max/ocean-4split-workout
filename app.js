@@ -158,7 +158,7 @@ function renderPlayer() {
   const video = document.querySelector("#exercise-video");
   if (video) {
     video.addEventListener("error", () => { video.remove(); const loader = document.querySelector("#video-loading"); if (loader) loader.remove(); if (!document.querySelector(".no-video-note")) { const note = document.createElement("small"); note.className = "no-video-note"; note.textContent = "该动作教学视频待补充，照着要领完成即可"; const bar = document.querySelector(".cue-bar p"); if (bar) bar.after(note); } });
-    video.addEventListener("loadeddata", () => { const loader = document.querySelector("#video-loading"); if (loader) loader.remove(); video.muted = state.muted; video.play().catch(() => {}); });
+    video.addEventListener("loadeddata", () => { const loader = document.querySelector("#video-loading"); if (loader) loader.remove(); video.muted = state.muted; video.volume = state.muted ? 0 : 1; video.play().catch(() => {}); });
   }
   const nextEx = s.exercises[s.exerciseIndex + 1];
   if (nextEx) prefetchClip(nextEx.id);
@@ -218,9 +218,10 @@ function beginRest(seconds) {
   state.restTimer = setInterval(() => { state.restLeft -= 1; const number = document.querySelector("#rest-number"); if (number) number.textContent = state.restLeft; if (state.restLeft <= 3 && state.restLeft > 0) rhythmBeep(880, .15); if (state.restLeft <= 0) { clearInterval(state.restTimer); rhythmBeep(1320, .4); vibrate([200,100,200]); overlay.remove(); render(); } }, 1000);
 }
 function unlockAudio() { if (!state.audio) { const AudioCtx = window.AudioContext || window.webkitAudioContext; if (AudioCtx) state.audio = new AudioCtx(); } if (state.audio && state.audio.state === "suspended") state.audio.resume().catch(() => {}); }
-function beep(frequency, duration) { if (!state.audio) return; const osc = state.audio.createOscillator(); const gain = state.audio.createGain(); osc.frequency.value = frequency; osc.type = "sine"; gain.gain.setValueAtTime(.001, state.audio.currentTime); gain.gain.exponentialRampToValueAtTime(.12, state.audio.currentTime + .015); gain.gain.exponentialRampToValueAtTime(.001, state.audio.currentTime + duration); osc.connect(gain).connect(state.audio.destination); osc.start(); osc.stop(state.audio.currentTime + duration + .02); }
+function beep(frequency, duration) { if (!state.audio) return; const osc = state.audio.createOscillator(); const gain = state.audio.createGain(); osc.frequency.value = frequency; osc.type = "triangle"; gain.gain.setValueAtTime(.001, state.audio.currentTime); gain.gain.exponentialRampToValueAtTime(.45, state.audio.currentTime + .015); gain.gain.exponentialRampToValueAtTime(.001, state.audio.currentTime + duration); osc.connect(gain).connect(state.audio.destination); osc.start(); osc.stop(state.audio.currentTime + duration + .02); }
 function rhythmBeep(frequency, duration) { const s = settings(); if (s.musicMode || !s.rhythmSound) return; beep(frequency, duration); }
-function speakCount(n) { const s = settings(); if (s.musicMode || !s.voiceCount || !("speechSynthesis" in window)) return; try { const u = new SpeechSynthesisUtterance(String(n)); u.lang = "zh-CN"; u.rate = 1.15; u.volume = 1; if (speechSynthesis.speaking) speechSynthesis.cancel(); setTimeout(() => speechSynthesis.speak(u), 60); } catch {} }
+const voicePlayer = new Audio();
+function speakCount(n) { const s = settings(); if (s.musicMode || !s.voiceCount) return; if (n < 1 || n > 40) return; try { voicePlayer.src = "assets/voice/n" + n + ".mp3"; voicePlayer.currentTime = 0; voicePlayer.play().catch(() => {}); } catch {} }
 function repTarget(repsLabel) { const m = String(repsLabel).match(/\d+/); return m ? Number(m[0]) : 0; }
 function startTicker(ex) {
   stopTicker();
@@ -278,7 +279,7 @@ document.addEventListener("click", event => {
   if (action === "add-rest") { state.restLeft += 15; const number = document.querySelector("#rest-number"); if (number) number.textContent = state.restLeft; }
   if (action === "pause") togglePause();
   if (action === "skip-set") { vibrate([30]); recordSet(null, false); showToast("已跳过本组"); }
-  if (action === "toggle-mute") { const st = settings(); st.videoSound = !st.videoSound; store.set("fs4_settings", st); state.muted = st.musicMode || !st.videoSound; const video = document.querySelector("#exercise-video"); if (video) { video.muted = state.muted; if (!state.muted) video.play().catch(() => {}); } const btn = actionEl; btn.innerHTML = (state.muted ? ICONS.mute : ICONS.volume) + `<span>${state.muted ? "指导声 关" : "指导声 开"}</span>`; btn.setAttribute("aria-label", state.muted ? "打开指导声" : "关闭指导声"); }
+  if (action === "toggle-mute") { const st = settings(); st.videoSound = !st.videoSound; store.set("fs4_settings", st); state.muted = st.musicMode || !st.videoSound; const video = document.querySelector("#exercise-video"); if (video) { video.muted = state.muted; video.volume = state.muted ? 0 : 1; if (!state.muted) video.play().catch(() => {}); } const btn = actionEl; btn.innerHTML = (state.muted ? ICONS.mute : ICONS.volume) + `<span>${state.muted ? "指导声 关" : "指导声 开"}</span>`; btn.setAttribute("aria-label", state.muted ? "打开指导声" : "关闭指导声"); }
   if (action === "quit") { clearInterval(state.restTimer); stopTicker(); state.paused = false; document.querySelector("#rest-modal")?.remove(); document.querySelector("#pause-modal")?.remove(); releaseWakeLock(); state.session = null; go("home"); }
   if (action === "save-session") saveSession();
   if (action === "check-rest") saveRestday();
@@ -291,7 +292,7 @@ document.addEventListener("change", event => {
   const s = settings();
   s[key] = event.target.type === "checkbox" ? event.target.checked : Math.max(0, Number(event.target.value) || 0);
   store.set("fs4_settings", s);
-  if (key === "videoSound" || key === "musicMode") { state.muted = s.musicMode || !s.videoSound; const video = document.querySelector("#exercise-video"); if (video) video.muted = state.muted; }
+  if (key === "videoSound" || key === "musicMode") { state.muted = s.musicMode || !s.videoSound; const video = document.querySelector("#exercise-video"); if (video) { video.muted = state.muted; video.volume = state.muted ? 0 : 1; } }
   showToast("设置已保存");
 });
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && state.view === "player") acquireWakeLock(); });
