@@ -6,7 +6,7 @@
   const order = ["day1", "day2", "day4", "day3", "day5"];
   const state = { view: "home", dayId: null, core: null, session: null, modal: false, teaching: false, videoReady: false, videoFailed: false, autoStart: false, wake: "尚未请求" };
   let timer, lastTick = 0, lastSave = 0, hiddenAt = 0, modalResolve, numberSubmit, audio, soundEpoch = 0, lock, lockPending = false, lessonSound = false;
-  const buffers = new Map(), sources = new Set(), prefetched = new Set();
+  const buffers = new Map(), sources = new Set();
   const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const prefs = () => store.settings();
   const day = id => getDayData(id, prefs(), store.overrides());
@@ -46,23 +46,32 @@
   function renderPlayer() {
     const c = state.core, e = ex(); if (!c || !e) return; depth("mid", state.session.dayId); const d = c.data;
     const old = $("#exercise-video"), src = videoSource(e), same = old && old.dataset.exercise === e.id;
-    const position = same ? old.currentTime : 0;
-    if (!same) { state.videoReady = !src; state.videoFailed = !src; }
+    if (!same) { state.videoReady = !src; state.videoFailed = false; }
+    if (same) old.remove();
     app.innerHTML = `<main class="page player-page"><header class="player-header">${btn("×", "quit", "back-btn", 'aria-label="退出训练"')}<div class="player-title"><span class="eyebrow">${label(d.dayId)} · ${esc(e.part)}</span><h1>${esc(e.actualExercise)}</h1><p class="subtle">第${d.setIndex + 1}/${e.sets}组 · 目标${targetText(e)}${e.sided === "single" ? ` · ${sideLabel(d.side)}` : ""}</p></div>${btn(c.phase === "paused" ? "继续" : "暂停", "pause", "icon-btn")}</header><div class="progress-track"><span id="progress-value"></span></div><section class="player-stage">${src ? `<video id="exercise-video" data-exercise="${e.id}" preload="auto" loop muted playsinline src="${esc(src)}"></video>` : `<p class="video-note">对应教学待补充，不播放其他动作冒充教学</p>`}</section><p class="video-note" id="video-state">${src ? "视频加载中，训练尚未开始" : "可按下方动作卡开始训练"}</p>${soundControls()}<div class="rep-chip" id="counter"></div><section class="cue-bar"><span class="cue-label">要领</span><p>${esc(e.cue)}</p></section><p class="subtle">器械：${esc(e.equipment)} · 节奏${e.tempo}秒/次</p><p class="capability-note" id="wake-state">屏幕常亮：${state.wake}</p><div class="button-row">${btn("教学回放", "teach", "ghost-btn btn-small")}${e.sided === "single" ? btn("跳过当前侧", "skip-side", "ghost-btn btn-small") : ""}</div><div class="player-bottom" id="phase-controls"></div></main>`;
-    const video = $("#exercise-video");
+    const video = same ? old : $("#exercise-video");
+    if (same) { $(".player-stage").replaceChildren(video); $("#video-state").textContent = state.videoFailed ? "视频播放异常，可重试加载" : state.videoReady ? "教学片段已就绪" : "视频加载中，训练尚未开始"; }
     if (video) {
+      if (!same) {
+        video.addEventListener("volumechange", () => enforceVideo(video));
+        const currentVideo = () => video.isConnected && $("#exercise-video") === video;
+        const loadTimeout = setTimeout(() => {
+          if (!currentVideo() || state.videoReady) return;
+          state.videoFailed = true;
+          $("#video-state").textContent = "视频加载超过8秒，点“重试视频”或暂停查看动作要领";
+          updatePlayer();
+        }, 8000);
+        video.addEventListener("loadeddata", () => { if (!currentVideo()) return; clearTimeout(loadTimeout); state.videoReady = true; state.videoFailed = false; $("#video-state").textContent = "教学片段已就绪"; updatePlayer(); syncVideo(); beginWhenReady(); });
+        video.addEventListener("loadedmetadata", () => { if (!currentVideo()) return; $(".player-stage").classList.toggle("landscape-video", video.videoWidth > video.videoHeight); });
+        video.addEventListener("error", () => { if (!currentVideo()) return; clearTimeout(loadTimeout); state.videoFailed = true; $("#video-state").textContent = "视频加载失败，请重试；训练尚未开始"; updatePlayer(); });
+      }
       enforceVideo(video);
-      video.addEventListener("volumechange", () => enforceVideo(video));
-      video.addEventListener("loadeddata", () => { state.videoReady = true; $("#video-state").textContent = "教学片段已就绪"; if (position) video.currentTime = Math.min(position, video.duration || position); updatePlayer(); syncVideo(); beginWhenReady(); });
-      video.addEventListener("loadedmetadata", () => { const stage = $(".player-stage"); if (stage) stage.classList.toggle("landscape-video", video.videoWidth > video.videoHeight); });
-      video.addEventListener("error", () => { state.videoFailed = true; state.videoReady = true; $("#video-state").textContent = "视频加载失败，按动作要领继续"; updatePlayer(); beginWhenReady(); });
       if (video.readyState >= 2) state.videoReady = true;
-      if (same) state.videoReady = true;
       syncVideo();
+      if (video.videoWidth) $(".player-stage").classList.toggle("landscape-video", video.videoWidth > video.videoHeight);
     }
     updatePlayer(true); acquireLock();
     beginWhenReady();
-    const next = d.exercises[d.exerciseIndex + 1]; if (next?.videoId) prefetch(next.videoId);
   }
   function enforceVideo(video) {
     const p = prefs(), enabled = video.id === "lesson-video" ? lessonSound : p.videoSound;
@@ -90,7 +99,7 @@
     const panel = $("#phase-controls"), key = `${phase}:${state.videoReady}`;
     if (force || panel.dataset.phase !== key) {
       panel.dataset.phase = key;
-      if (phase === "ready") panel.innerHTML = `<p class="subtle">${state.videoReady ? "正在进入3秒准备" : "教学片段加载中，稍后自动开始"}</p>` + btn("跳过", "skip-menu", "ghost-btn btn-small");
+      if (phase === "ready") panel.innerHTML = `<p class="subtle">${state.videoFailed ? "视频未就绪，训练暂停等待" : "教学视频加载中"}</p>` + (state.videoFailed ? btn("重试视频", "retry-video", "ghost-btn btn-small") : "") + btn("跳过", "skip-menu", "ghost-btn btn-small");
       else if (phase === "preparing") panel.innerHTML = `<p>准备姿势，倒计时后开始</p>`;
       else if (phase === "active") panel.innerHTML = btn("完成本组", "finish", "primary-btn btn-wide btn-large") + btn("跳过", "skip-menu", "ghost-btn btn-small");
       else if (phase === "buffer") panel.innerHTML = `<p>达到目标，2秒后自动完成</p>${btn("立即完成", "finish", "primary-btn btn-wide btn-large")}${btn("继续本组", "continue")}`;
@@ -118,7 +127,11 @@
       state.core.tick(delta); events();
       if (state.view !== "player") return;
       const after = `${state.core.data.exerciseIndex}:${state.core.data.setIndex}:${state.core.data.side}`;
-      if (before !== after) { state.autoStart = !["paused", "complete"].includes(state.core.phase); renderPlayer(); } else updatePlayer();
+      if (before !== after) {
+        state.autoStart = state.core.phase === "ready";
+        renderPlayer();
+      } else if (state.core.phase === "ready" && state.autoStart) beginWhenReady();
+      else updatePlayer();
       if (Date.now() - lastSave > 1000) saveDraft();
     }), 100);
   }
@@ -126,7 +139,7 @@
     for (const event of state.core.consumeEvents()) {
       if (event.type === "count") { beep(660,.12); if (ex().mode === "reps") speak(ex().sided === "alternate" ? Math.ceil(event.count / 2) : event.count); }
       if (["target","restEnd","setEnd"].includes(event.type)) { beep(1250,.3); navigator.vibrate?.([100,50,100]); }
-      if (event.type === "restEnd") { state.autoStart = true; renderPlayer(); }
+      if (event.type === "restEnd") state.autoStart = true;
       if (event.type === "start") { const v=$("#exercise-video"); if(v){v.currentTime=0;syncVideo();} }
       if (event.type === "sideChange") notify("换到右侧，准备姿势");
       if (event.type === "backgroundInterrupted") state.needsRecovery = true;
@@ -134,7 +147,10 @@
     }
   }
   function apply(method, ...args) {
+    const d = state.core.data, before = `${d.exerciseIndex}:${d.setIndex}:${d.side}`;
     stopSounds(); const changed = state.core[method](...args); if (!changed) return;
+    const after = `${d.exerciseIndex}:${d.setIndex}:${d.side}`;
+    if (before !== after && state.core.phase === "ready") state.autoStart = true;
     events(); saveDraft(); if (state.view === "player") renderPlayer();
   }
   function recordsOf(item) {
@@ -175,7 +191,6 @@
   function beep(freq,time){const p=prefs();if(!p.rhythmSound||!audio||audio.state!=="running")return;const osc=audio.createOscillator(),g=audio.createGain(),now=audio.currentTime;osc.type="triangle";osc.frequency.value=freq;g.gain.setValueAtTime(.001,now);g.gain.linearRampToValueAtTime(.8*p.volume.rhythm*p.masterVolume,now+.015);g.gain.exponentialRampToValueAtTime(.001,now+time);osc.connect(g).connect(audio.destination);sources.add(osc);osc.onended=()=>sources.delete(osc);osc.start();osc.stop(now+time);}
   function loadVoice(n){if(!audio)return Promise.resolve(null);if(!buffers.has(n))buffers.set(n,fetch(`assets/voice/n${n}.mp3`).then(r=>{if(!r.ok)throw Error("报数音频加载失败");return r.arrayBuffer();}).then(b=>audio.decodeAudioData(b)).catch(error=>{buffers.delete(n);notify(error.message);return null;}));return buffers.get(n);}
   function speak(n){if(n<1||n>40||!prefs().voiceCount||!audio)return;const epoch=soundEpoch,time=Date.now();loadVoice(n).then(buffer=>{if(!buffer||epoch!==soundEpoch||Date.now()-time>500||state.core?.phase==="paused"||!prefs().voiceCount)return;const src=audio.createBufferSource(),g=audio.createGain(),p=prefs();src.buffer=buffer;g.gain.value=p.volume.voice*p.masterVolume;src.connect(g).connect(audio.destination);sources.add(src);src.onended=()=>sources.delete(src);src.start();});}
-  function prefetch(id){if(prefetched.has(id)||navigator.connection?.saveData)return;prefetched.add(id);fetch(`videos/clips/${id}.mp4`).then(r=>{if(!r.ok)throw Error("prefetch");return r.blob();}).catch(()=>prefetched.delete(id));}
   async function acquireLock(){if(lock||lockPending||document.hidden||state.view!=="player")return;if(!navigator.wakeLock){state.wake="不支持，请手动保持亮屏";return;}lockPending=true;try{const l=await navigator.wakeLock.request("screen");if(state.view!=="player"||document.hidden){await l.release();return;}lock=l;state.wake="已开启";l.addEventListener("release",()=>{if(lock===l)lock=null;});}catch{state.wake="请求失败，请保持屏幕亮起";}finally{lockPending=false;const el=$("#wake-state");if(el)el.textContent=`屏幕常亮：${state.wake}`;}}
   function releaseLock(){lock?.release().catch(()=>{});lock=null;}
   document.addEventListener("visibilitychange",()=>guard(()=>{if(!state.core)return;if(document.hidden){hiddenAt=Date.now();if(state.core.phase!=="rest")state.core.background(0);stopSounds();$("#exercise-video")?.pause();saveDraft();}else{if(hiddenAt&&state.core.phase==="rest")state.core.background(Date.now()-hiddenAt);hiddenAt=0;lastTick=performance.now();events();saveDraft();render();acquireLock();if(state.needsRecovery){state.needsRecovery=false;choice("后台训练未补算","请确认当前组进度",[["redo","重做当前组"],["stay","按上次进度继续（暂停）"],["skip","跳过本组"]]).then(v=>{if(v==="skip")apply("skipSet");if(v==="redo"){state.core.data.count=0;state.core.data.elapsed=0;state.core.data.currentSides=[];state.core.data.side="left";state.core.setPhase("ready");saveDraft();render();}});}}}));
@@ -183,6 +198,7 @@
     if(["home","history","settings","restday","day"].includes(a)){if(state.core)return quit();return go(a,b.dataset.day);}
     if(a==="start"){unlockAudio().catch(error=>notify(`声音未就绪：${error.message}`));const draft=store.draft();if(draft){const decision=await choice("已有未完成训练","恢复草稿，或先保存它再开始新训练",[["restore","恢复草稿"],["new","保留未完成历史，开始新训练"],["cancel","取消"]]);if(decision==="restore")return restore();if(decision!=="new")return;start(draft.dayId,draft.cycleIndex??null,draft);saveSession(true);}for(let n=1;n<=20;n++)loadVoice(n);return start(b.dataset.day,b.dataset.cycle==null?null:Number(b.dataset.cycle));}
     if(a==="restore")return restore();if(a==="discard-draft")return discard();
+    if(a==="retry-video"){const video=$("#exercise-video");if(video){state.videoFailed=false;state.videoReady=false;$("#video-state").textContent="重新加载教学视频";video.load();updatePlayer();}return;}
     if(a==="finish"){if(ex().mode==="manual")return number(`本组实际${ex().unit}`,v=>{if(state.core.phase==="paused")state.core.resume();apply("finish",v);});return apply("finish");}
     if(a==="continue")return apply("continueBeyondTarget");if(a==="pause"){unlockAudio().catch(error=>notify(`声音未就绪：${error.message}`));if(state.core.phase==="paused" && state.core.data.pausedPhase==="ready"){state.core.resume();state.autoStart=true;renderPlayer();saveDraft();return;}return apply(state.core.phase==="paused"?"resume":"pause");}
     if(a==="skip-menu"){const v=await choice("跳过范围","跳过会记录，不视为完成",[["set","跳过本组"],["ex","跳过动作"],["cancel","取消（保持暂停）"]]);if(v==="set")return apply("skipSet");if(v==="ex")return action("skip-ex",b);}

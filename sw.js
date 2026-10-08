@@ -1,4 +1,4 @@
-const CACHE_VERSION = "fs4-shell-v21";
+const CACHE_VERSION = "fs4-shell-v22";
 const MEDIA_CACHE = "fs4-media-v1";
 const VOICE = Array.from({ length: 40 }, (_, i) => `./assets/voice/n${i + 1}.mp3`);
 const SHELL = [
