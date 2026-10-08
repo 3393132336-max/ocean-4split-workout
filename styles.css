@@ -242,7 +242,8 @@ button, input, select, summary { -webkit-tap-highlight-color: transparent; }
 .phase-panel { padding: 14px; border: 1px solid rgba(255,255,255,.9); border-radius: 18px; background: rgba(255,255,255,.72); }
 .phase-panel .rest-actions { margin-top: 12px; }
 .phase-panel .rest-number { font-size: 80px; margin: 14px 0; }
-.rest-overlay { background: rgba(13,53,65,.25); backdrop-filter: blur(10px); padding: 12px; overflow-y: auto; }
+.rest-overlay { background: rgba(13,53,65,.25); backdrop-filter: blur(10px); padding: 12px; overflow-y: auto; z-index: 50; }
+body.modal-active #app .player-stage, body.modal-active #app .player-page .player-header, body.modal-active #app .player-page .sound-controls { visibility: hidden; }
 .rest-sheet { max-height: calc(100dvh - 24px); overflow-y: auto; border-radius: 24px; background: rgba(246,253,253,.92); }
 .rest-sheet .rest-actions { margin-top: 18px; }
 .rest-sheet .teaching-video { display: block; width: min(100%, 360px); height: auto; aspect-ratio: 9 / 16; margin: 12px auto; object-fit: contain; background: #162b32; border-radius: 12px; }

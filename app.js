@@ -4,7 +4,7 @@
   const app = $("#app"), toast = $("#toast"), transition = $("#transition");
   const store = WorkoutStore;
   const order = ["day1", "day2", "day4", "day3", "day5"];
-  const state = { view: "home", dayId: null, core: null, session: null, modal: false, teaching: false, videoReady: false, videoFailed: false, wake: "尚未请求" };
+  const state = { view: "home", dayId: null, core: null, session: null, modal: false, teaching: false, videoReady: false, videoFailed: false, autoStart: false, wake: "尚未请求" };
   let timer, lastTick = 0, lastSave = 0, hiddenAt = 0, modalResolve, numberSubmit, audio, soundEpoch = 0, lock, lockPending = false, lessonSound = false;
   const buffers = new Map(), sources = new Set(), prefetched = new Set();
   const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -53,14 +53,16 @@
     if (video) {
       enforceVideo(video);
       video.addEventListener("volumechange", () => enforceVideo(video));
-      video.addEventListener("loadeddata", () => { state.videoReady = true; $("#video-state").textContent = "教学片段已就绪"; if (position) video.currentTime = Math.min(position, video.duration || position); updatePlayer(); syncVideo(); });
+      video.addEventListener("loadeddata", () => { state.videoReady = true; $("#video-state").textContent = "教学片段已就绪"; if (position) video.currentTime = Math.min(position, video.duration || position); updatePlayer(); syncVideo(); if (state.autoStart && state.core?.phase === "ready") { state.autoStart = false; apply("start"); } });
       video.addEventListener("loadedmetadata", () => { const stage = $(".player-stage"); if (stage) stage.classList.toggle("landscape-video", video.videoWidth > video.videoHeight); });
       video.addEventListener("error", () => { state.videoFailed = true; state.videoReady = true; $("#video-state").textContent = "视频加载失败，使用动作卡兜底；可重新加载"; updatePlayer(); });
       if (video.readyState >= 2) state.videoReady = true;
       if (same) state.videoReady = true;
       syncVideo();
+      if (state.autoStart && state.videoReady && state.core?.phase === "ready") { state.autoStart = false; apply("start"); }
     }
     updatePlayer(true); acquireLock();
+    if (state.autoStart && !src && state.core?.phase === "ready") { state.autoStart = false; apply("start"); }
     const next = d.exercises[d.exerciseIndex + 1]; if (next?.videoId) prefetch(next.videoId);
   }
   function enforceVideo(video) {
@@ -100,7 +102,7 @@
     state.session = saved ? { ...saved } : { id: state.core.data.id, dayId: id, dayTitle: day(id).title, cycleIndex };
     if (saved && !["ready","paused","transition","complete"].includes(state.core.phase)) state.core.pause();
     state.view = state.core.phase === "complete" ? "complete" : "player";
-    history.replaceState(null,"",`#/play/${id}`); saveDraft(); render(); startTimer();
+    history.replaceState(null,"",`#/play/${id}`); state.autoStart = !saved; saveDraft(); render(); startTimer();
   }
   function saveDraft() { if (!state.core) return; store.saveDraft({ ...state.session, core: state.core.snapshot(), lastSavedAt: Date.now() }); lastSave = Date.now(); }
   function startTimer() {
@@ -112,7 +114,7 @@
       state.core.tick(delta); events();
       if (state.view !== "player") return;
       const after = `${state.core.data.exerciseIndex}:${state.core.data.setIndex}:${state.core.data.side}`;
-      if (before !== after) renderPlayer(); else updatePlayer();
+      if (before !== after) { state.autoStart = !["paused", "complete"].includes(state.core.phase); renderPlayer(); } else updatePlayer();
       if (Date.now() - lastSave > 1000) saveDraft();
     }), 100);
   }
@@ -120,6 +122,7 @@
     for (const event of state.core.consumeEvents()) {
       if (event.type === "count") { beep(660,.12); if (ex().mode === "reps") speak(ex().sided === "alternate" ? Math.ceil(event.count / 2) : event.count); }
       if (["target","restEnd","setEnd"].includes(event.type)) { beep(1250,.3); navigator.vibrate?.([100,50,100]); }
+      if (event.type === "restEnd") { state.autoStart = true; renderPlayer(); }
       if (event.type === "start") { const v=$("#exercise-video"); if(v){v.currentTime=0;syncVideo();} }
       if (event.type === "sideChange") notify("换到右侧，准备姿势");
       if (event.type === "backgroundInterrupted") state.needsRecovery = true;
@@ -155,8 +158,8 @@
     depth("surface");const p=prefs();app.innerHTML=`<main class="page">${header("设置","训练与声音")}<section class="settings-list">${[["rest","默认间歇秒数",0,600,1],["tempo","每次节奏秒数",.5,10,.5],["hold","默认保持秒数",1,3600,1]].map(([k,t,min,max,step])=>`<label class="setting-row surface-card">${t}<input data-setting="${k}" type="number" min="${min}" max="${max}" step="${step}" value="${p[k]}"></label>`).join("")}${[["absEnabled","肩日腹肌"],["videoSound","视频指导声"],["rhythmSound","节拍提示"],["voiceCount","语音报数"]].map(([k,t])=>`<label class="setting-row surface-card">${t}<span class="switch"><input type="checkbox" data-setting="${k}" ${p[k]?"checked":""}><span></span></span></label>`).join("")}${[["video","指导音量"],["rhythm","节拍音量"],["voice","报数音量"],["master","网页总音量"]].map(([k,t])=>`<label class="setting-row surface-card">${t}<input type="range" min="0" max="1" step=".05" data-volume="${k}" value="${k==="master"?p.masterVolume:p.volume[k]}"></label>`).join("")}<p class="subtle">网易云音量由音乐应用控制。本页不会主动暂停外部音乐；混音需在手机浏览器验证。</p><p class="subtle" id="cache-status">正在核对离线缓存</p>${btn("导出历史与设置","export")}${btn("导入备份","import-file")}<input id="import-file" type="file" accept=".json,application/json" hidden><p class="subtle">数据仅存本浏览器，夸克与小米浏览器不自动共享。视频按需缓存。常亮不阻止主动锁屏。</p></section>${nav("settings")}</main>`; cacheStatus();
   }
   function cacheStatus(){const target=$("#cache-status");const worker=navigator.serviceWorker?.controller;if(!worker){target.textContent="离线缓存尚未受控，请联网重开后检查";return;}const channel=new MessageChannel(),timeout=setTimeout(()=>{if(target.isConnected)target.textContent="缓存状态查询超时，不能确认离线就绪";},4000);channel.port1.onmessage=({data})=>{clearTimeout(timeout);if(target.isConnected)target.textContent=`页面${data.shellReady?"已缓存":"尚未缓存完整"} · 语音${data.voices}/40 · 视频${data.clips}段`;channel.port1.close();};worker.postMessage("CACHE_STATUS",[channel.port2]);}
-  function freezeForModal(){if(state.core && state.view==="player"){state.core.pause();stopSounds();syncVideo();saveDraft();updatePlayer();}}
-  function closeModal(){ $("#modal")?.remove(); state.modal=false;state.teaching=false;numberSubmit=null;lastTick=performance.now(); }
+  function freezeForModal(){if(state.core && state.view==="player"){state.core.pause();stopSounds();syncVideo();saveDraft();updatePlayer();document.body.classList.add("modal-active");}}
+  function closeModal(){ $("#modal")?.remove(); state.modal=false;state.teaching=false;numberSubmit=null;lastTick=performance.now();document.body.classList.remove("modal-active"); }
   function choice(title,text,buttons){freezeForModal();return new Promise(resolve=>{closeModal();state.modal=true;modalResolve=resolve;const el=document.createElement("div");el.id="modal";el.className="rest-overlay";el.innerHTML=`<section class="rest-sheet" role="dialog" aria-modal="true"><h2>${esc(title)}</h2><p class="subtle">${esc(text)}</p><div class="rest-actions">${buttons.map(([value,t])=>`<button class="ghost-btn btn-wide" data-choice="${value}">${t}</button>`).join("")}</div></section>`;document.body.append(el);});}
   function number(title, callback){freezeForModal();closeModal();state.modal=true;numberSubmit=callback;const el=document.createElement("div");el.id="modal";el.className="rest-overlay";el.innerHTML=`<section class="rest-sheet"><h2>${esc(title)}</h2><div class="numpad-display" id="number-value"></div><div class="numpad">${[1,2,3,4,5,6,7,8,9,"clear",0,"save"].map(v=>`<button class="pad-key" data-digit="${v}">${v==="clear"?"清除":v==="save"?"保存":v}</button>`).join("")}</div>${btn("取消，返回暂停","close-modal")}</section>`;document.body.append(el);}
   function teach(){freezeForModal();closeModal();state.modal=true;state.teaching=true;lessonSound=prefs().videoSound;const e=ex(),src=videoSource(e);const el=document.createElement("div");el.id="modal";el.className="rest-overlay lesson-overlay";el.innerHTML=`<section class="rest-sheet"><h2>${esc(e.actualExercise)}</h2><p>${targetText(e)} · ${esc(e.equipment)} · 第${state.core.data.setIndex+1}组</p>${src?`<video id="lesson-video" class="teaching-video" controls playsinline muted src="${esc(src)}"></video>`:"<p>对应教学视频待补充，下方动作卡可用</p>"}<div class="button-row">${btn("从头重播","lesson-restart","ghost-btn btn-small")}${btn("教学声音开关","lesson-sound","ghost-btn btn-small")}</div><h3>动作步骤</h3><p>${esc(e.tutorial.steps)}</p><h3>动作要领</h3><p>${esc(e.cue)}</p><h3>常见错误</h3><p>${esc(e.tutorial.mistakes)}</p>${btn("返回训练暂停页","close-modal","primary-btn btn-wide btn-large")}</section>`;document.body.append(el);const v=$("#lesson-video");if(v){enforceVideo(v);v.addEventListener("volumechange",()=>enforceVideo(v));v.addEventListener("loadedmetadata",()=>v.classList.toggle("landscape-video",v.videoWidth>v.videoHeight));}}
