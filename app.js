@@ -53,16 +53,15 @@
     if (video) {
       enforceVideo(video);
       video.addEventListener("volumechange", () => enforceVideo(video));
-      video.addEventListener("loadeddata", () => { state.videoReady = true; $("#video-state").textContent = "教学片段已就绪"; if (position) video.currentTime = Math.min(position, video.duration || position); updatePlayer(); syncVideo(); if (state.autoStart && state.core?.phase === "ready") { state.autoStart = false; apply("start"); } });
+      video.addEventListener("loadeddata", () => { state.videoReady = true; $("#video-state").textContent = "教学片段已就绪"; if (position) video.currentTime = Math.min(position, video.duration || position); updatePlayer(); syncVideo(); beginWhenReady(); });
       video.addEventListener("loadedmetadata", () => { const stage = $(".player-stage"); if (stage) stage.classList.toggle("landscape-video", video.videoWidth > video.videoHeight); });
-      video.addEventListener("error", () => { state.videoFailed = true; state.videoReady = true; $("#video-state").textContent = "视频加载失败，使用动作卡兜底；可重新加载"; updatePlayer(); });
+      video.addEventListener("error", () => { state.videoFailed = true; state.videoReady = true; $("#video-state").textContent = "视频加载失败，按动作要领继续"; updatePlayer(); beginWhenReady(); });
       if (video.readyState >= 2) state.videoReady = true;
       if (same) state.videoReady = true;
       syncVideo();
-      if (state.autoStart && state.videoReady && state.core?.phase === "ready") { state.autoStart = false; apply("start"); }
     }
     updatePlayer(true); acquireLock();
-    if (state.autoStart && !src && state.core?.phase === "ready") { state.autoStart = false; apply("start"); }
+    beginWhenReady();
     const next = d.exercises[d.exerciseIndex + 1]; if (next?.videoId) prefetch(next.videoId);
   }
   function enforceVideo(video) {
@@ -72,6 +71,11 @@
     if (Math.abs(video.volume - volume) > .001) video.volume = volume;
   }
   function syncVideo() { const v = $("#exercise-video"); if (!v) return; enforceVideo(v); if (state.core.phase === "paused" || state.modal || ["rest","transition","complete"].includes(state.core.phase)) v.pause(); else v.play().catch(() => {}); }
+  function beginWhenReady() {
+    if (!state.autoStart || !state.videoReady || state.core?.phase !== "ready" || state.modal || document.hidden) return;
+    state.autoStart = false;
+    apply("start");
+  }
   function updatePlayer(force = false) {
     if (state.view !== "player" || !state.core) return;
     const d = state.core.data, e = ex(), phase = d.phase;
@@ -86,7 +90,7 @@
     const panel = $("#phase-controls"), key = `${phase}:${state.videoReady}`;
     if (force || panel.dataset.phase !== key) {
       panel.dataset.phase = key;
-      if (phase === "ready") panel.innerHTML = btn(state.videoFailed ? "按动作卡开始本组" : "开始本组", "begin", "primary-btn btn-wide btn-large", state.videoReady ? "" : "disabled") + btn("跳过", "skip-menu", "ghost-btn btn-small");
+      if (phase === "ready") panel.innerHTML = `<p class="subtle">${state.videoReady ? "正在进入3秒准备" : "教学片段加载中，稍后自动开始"}</p>` + btn("跳过", "skip-menu", "ghost-btn btn-small");
       else if (phase === "preparing") panel.innerHTML = `<p>准备姿势，倒计时后开始</p>`;
       else if (phase === "active") panel.innerHTML = btn("完成本组", "finish", "primary-btn btn-wide btn-large") + btn("跳过", "skip-menu", "ghost-btn btn-small");
       else if (phase === "buffer") panel.innerHTML = `<p>达到目标，2秒后自动完成</p>${btn("立即完成", "finish", "primary-btn btn-wide btn-large")}${btn("继续本组", "continue")}`;
@@ -100,7 +104,7 @@
     if (id === "day5") return go("restday");
     state.core = new WorkoutCore(day(id), {}, saved?.core ? JSON.parse(JSON.stringify(saved.core)) : null);
     state.session = saved ? { ...saved } : { id: state.core.data.id, dayId: id, dayTitle: day(id).title, cycleIndex };
-    if (saved && !["ready","paused","transition","complete"].includes(state.core.phase)) state.core.pause();
+    if (saved && !["paused","transition","complete"].includes(state.core.phase)) state.core.pause();
     state.view = state.core.phase === "complete" ? "complete" : "player";
     history.replaceState(null,"",`#/play/${id}`); state.autoStart = !saved; saveDraft(); render(); startTimer();
   }
@@ -179,9 +183,8 @@
     if(["home","history","settings","restday","day"].includes(a)){if(state.core)return quit();return go(a,b.dataset.day);}
     if(a==="start"){unlockAudio().catch(error=>notify(`声音未就绪：${error.message}`));const draft=store.draft();if(draft){const decision=await choice("已有未完成训练","恢复草稿，或先保存它再开始新训练",[["restore","恢复草稿"],["new","保留未完成历史，开始新训练"],["cancel","取消"]]);if(decision==="restore")return restore();if(decision!=="new")return;start(draft.dayId,draft.cycleIndex??null,draft);saveSession(true);}for(let n=1;n<=20;n++)loadVoice(n);return start(b.dataset.day,b.dataset.cycle==null?null:Number(b.dataset.cycle));}
     if(a==="restore")return restore();if(a==="discard-draft")return discard();
-    if(a==="begin"){unlockAudio().catch(error=>notify(`声音未就绪：${error.message}`));return apply("start");}
     if(a==="finish"){if(ex().mode==="manual")return number(`本组实际${ex().unit}`,v=>{if(state.core.phase==="paused")state.core.resume();apply("finish",v);});return apply("finish");}
-    if(a==="continue")return apply("continueBeyondTarget");if(a==="pause"){unlockAudio().catch(error=>notify(`声音未就绪：${error.message}`));return apply(state.core.phase==="paused"?"resume":"pause");}
+    if(a==="continue")return apply("continueBeyondTarget");if(a==="pause"){unlockAudio().catch(error=>notify(`声音未就绪：${error.message}`));if(state.core.phase==="paused" && state.core.data.pausedPhase==="ready"){state.core.resume();state.autoStart=true;renderPlayer();saveDraft();return;}return apply(state.core.phase==="paused"?"resume":"pause");}
     if(a==="skip-menu"){const v=await choice("跳过范围","跳过会记录，不视为完成",[["set","跳过本组"],["ex","跳过动作"],["cancel","取消（保持暂停）"]]);if(v==="set")return apply("skipSet");if(v==="ex")return action("skip-ex",b);}
     if(a==="skip-set")return apply("skipSet");if(a==="skip-ex"){if(await choice("跳过动作？","该动作剩余组全部标记跳过",[["yes","确认跳过"],["no","取消"]])==="yes")apply("skipExercise");return;}
     if(a==="skip-side")return apply("skipSide");if(a==="skip-rest")return apply("finishRest");if(a==="add-rest")return apply("addRest",15);if(a==="stretch")return apply("enterStretch");if(a==="skip-stretch")return apply("skipStretch");
